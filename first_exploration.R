@@ -1,6 +1,9 @@
 data_dir <- 'C:/Users/Saliou/Documents/consultant/BlueSquare/sources/'
 metadata_dir <- 'C:/Users/Saliou/Documents/consultant/BlueSquare/metadata/'
 
+data_dir <- '/Users/grlurton/data/dhis/rdc/hivdr/'
+metadata_dir <- '/Users/grlurton/data/dhis/rdc/hivdr/metadata/'
+
 #modif
 
 
@@ -131,21 +134,29 @@ make_serie <- function(data1, data2){
     if(length(values) >= 3){expected <- mean(values[(length(values)-2):length(values)])}
     if(length(values) < 3){expected <- mean(c(value1, value2))}
     ##taking into account zeros
-    window_months <- periods[[i-2,i-1,i+1,i+2]]
-    if(value1 == 0 & max(data1$value[data1$month == periods]) > 0){
+    if(i >= 3){
+    window_months <- periods[c(i-2,i-1,
+                               max(i+1, length(periods)),
+                               max(i+2, length(periods)))]
+    if((!is.na(value1)) & (value1 == 0) & (min(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
       value1 <- NA
     }
-    if(value2 == 0 & max(data2$value[data2$month == periods]) > 0){
+    if((!is.na(value2)) & (value2 == 0) & (min(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
       value2 <- NA
     }
+    }
     #################
-    if(is.na(value1)){
+    if(is.na(value1) & !is.na(value2)){
       values <- c(values, value2)
       source <- c(source, unique(data2$source))
     }
-    if(is.na(value2)){
+    if(is.na(value2) & !is.na(value1)){
       values <- c(values, value1)
       source <- c(source, unique(data1$source))
+    }
+    if(is.na(value2) & is.na(value1)){
+      values <- c(values, expected)
+      source <- c(source, 'expectation - no value')
     }
     if(!is.na(value1) & !is.na(value2)){
     check1 <- (abs(value1-value2)/value1 < .1) 
@@ -158,9 +169,6 @@ make_serie <- function(data1, data2){
       print('check1 fails')
       if(length(values) >= 3){
         n <- length(values)
-        #print('expected')
-        #expected <- 
-        #print(expected)
         check_2 <- ((abs(value1-expected)/expected) < .1)
         if(check_2 == TRUE){
           print('check2 ok')
@@ -188,58 +196,84 @@ make_serie <- function(data1, data2){
         }
       }
       if(length(values) < 3){
-        values <- c(values, mean(c(value1, value2)))
+        values <- c(values, expected)
         source <- c(source,'estimation')
       }
     }
     }
     expecteds <- c(expecteds, expected)
   }
+  print(periods)
+  print(values)
+  print(source)
+  print(expecteds)
   out <- data.frame('periods'=periods,'values'=values, 'source'=source, 'expected' = expecteds , 
                     value_1 = data1$value[data1$month == periods], 
                     value_2 = data2$value[data2$month == periods])
+  
+  
   return(out)
 }
 
+## pb 1: 0 still taken in the sliding averages
+## pb 2: 0 not managed in beginning of periods
+
+## Standardizing data sources and making unique data frame
 serie_data_1 <- subset(compare , select=c('month', 'orgUnit','n_patients', 'parent.parent.parent.name'))
 serie_data_2 <- subset(compare , select=c('month', 'orgUnit','n_patients_ligne', 'parent.parent.parent.name'))
 colnames(serie_data_1) <- colnames(serie_data_2) <- c('month', 'orgUnit', 'value', 'province')
 serie_data_1$source <- 'total'
 serie_data_2$source <-'by line'
 
-dat <- rbind(serie_data_1, serie_data_2)
+full_data <- rbind(serie_data_1, serie_data_2)
 
 serying <- function(data){
   data1 <- data[data$source == 'total',]
   data2 <- data[data$source == 'by line',]
   print('making a serie')
-  print(data1)
   out <- make_serie(data1, data2)
   return(out)
 }
 
-hh <- dat %>% group_by(.,orgUnit) %>% do(serying(.))
 
+## Building the full series
+completed_data <- full_data %>% group_by(.,orgUnit) %>% do(serying(.))
 
-composed_data_1 <- subset(compare , !is.na(compare$n_patients) , c('month', 'orgUnit','n_patients', 'parent.parent.parent.name'))
-composed_data_2 <- subset(compare , is.na(compare$n_patients) , c('month', 'orgUnit','n_patients_ligne', 'parent.parent.parent.name'))
-colnames(composed_data_2) <- colnames(composed_data_1) <- c('month', 'orgUnit', 'source', 'province')
-composed_data_1$source <- as.factor('total')
-composed_data_2$source <-as.factor('by line')
-composed_data <- rbind(composed_data_1, composed_data_2)
+## Making a plotable df
+to_plot <- merge(completed_data, M_hierarchy, by.x = 'orgUnit' , by.y = 'id', all.y = FALSE)
 
+## Plotting
 
-to_plot <- merge(hh, M_hierarchy, by.x = 'orgUnit' , by.y = 'id', all.y = FALSE)
+cols <- c("Declared Patients"="#f04546","Treatment Lines"="#3591d1","Expectation"="#62c76b", "Final Values"="#000000")
 
-
+## A sample for troubleshooting
+sample <- sample(unique(to_plot$orgUnit),size = 16)
+ggplot(to_plot[to_plot$orgUnit %in% sample, ])+
+    geom_point(aes(x=periods, y=value_1, colour= 'Declared Patients') , alpha=.5) +
+    geom_line(aes(x=periods, y=value_1, colour= 'Declared Patients'), alpha=.5)+    
+    geom_point(aes(x=periods, y=value_2, colour= 'Treatment Lines'), alpha=.5) +
+    geom_line(aes(x=periods, y=value_2, colour= 'Treatment Lines'), alpha=.5)+
+    geom_point(aes(x=periods, y=expected, colour= 'Expectation'), alpha=.5) +
+    geom_line(aes(x=periods, y=expected, colour= 'Expectation'), alpha=.5)+
+    geom_point(aes(x=periods, y=values, colour="Final Values")) +
+    geom_line(aes(x=periods, y = values, colour="Final Values")) +
+    scale_colour_manual(name="Source",values=cols) +
+    guides(alpha = FALSE)+
+    facet_wrap(~name, scales = 'free_y') +
+    #ylim(0,max(dat_plot[,c('value_1','value_2','expected','values')])) +
+    theme_bw() +
+    theme(axis.title.x = element_text(size = 15, vjust=-.2)) +
+    theme(axis.title.y = element_text(size = 15, vjust=0.3)) +
+    ylab("N Patients") + xlab("Year 2017")
+ 
 to_plot$source <- factor(to_plot$source,levels = c('total', 'by line','estimation'), ordered = TRUE)
 ggplot(to_plot)+
-  expectedsource)) +
+  geom_point(aes(x=periods, y=values, colour= orgUnit, shape=source), size = 1.2) +
   geom_line(aes(x=periods, y=values, col= orgUnit), alpha = .2) +
   guides(col=FALSE, alpha = FALSE) + facet_wrap(~level_2_name, scales = 'free_y')
 
 
-cols <- c("Declared Patients"="#f04546","Treatment Lines"="#3591d1","Expectation"="#62c76b", "Final Values"="#000000")
+
 pdf("plots.pdf", onefile = TRUE)
 for( i in unique(to_plot$orgUnit)){
   dat_plot <- to_plot[to_plot$orgUnit == i, ]
@@ -262,5 +296,7 @@ for( i in unique(to_plot$orgUnit)){
   print(p)
 }
 dev.off()
+
+
 
 
