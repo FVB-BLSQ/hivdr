@@ -19,39 +19,47 @@ load_metadata <- function(metadata_dir, suffix = ''){
 }
 
 load_metadata(metadata_dir)
-load_metadata('/Users/grlurton/data/dhis/rdc/snis/')
-
-snis_metadata <- read.csv('/Users/grlurton/data/dhis/rdc/snis/org_units_report.csv')
-snis_de <- read.csv('/Users/grlurton/data/dhis/rdc/snis/data_elements_list.csv')
-
-snis_de
 
 ### Find Data Elements of interest
 
 M_data_sets[M_data_sets$DE_id %in% cordaid$dataElement,c('DE_id', 'DE_name')]
+M_data_sets[M_data_sets$DE_id %in% sigl2$dataElement,c('DE_id', 'DE_name')]
+M_data_sets[M_data_sets$DE_id %in% dat_pnls$dataElement,c('DE_id', 'DE_name')]
+
+sum(M_data_sets$DE_id %in% cordaid$dataElement)
+sum(M_data_sets$DE_id %in% sigl2$dataElement)
+sum(M_data_sets$DE_id %in% dat_pnls$dataElement)
+
+print('test')
+
+M_data_sets[M_data_sets$DE_id %in% sigl2$dataElement,c('DE_id', 'DE_name')]
 M_data_sets[M_data_sets$DE_id %in% pnls$dataElement,c('DE_id', 'DE_name')]
 
 
 
+
+unique(pnls$dataElement)
+
 table(cordaid$value[cordaid$dataElement == 'uSoD3GUgQSF'])
 summary(cordaid$value[cordaid$dataElement == 'lqA1LfMt9C6'])
-
-length(unique(cordaid$orgUnit))
 
 
 table(M_org_units$parent.parent.parent.name[M_org_units$id %in% unique(cordaid$orgUnit)])
 
-M_org_units$parent.parent.parent.name[M_org_units$id %in% unique(cordaid$orgUnit)]
 
 cordaid = merge(cordaid, M_org_units, by.x = 'orgUnit', by.y='id', all.y = FALSE)
 
+
+##### 
+
 library(ggplot2)
 library(zoo)
-library(dplyr)
 library(data.table)
+library(dplyr)
 
 cordaid$period <- as.character(cordaid$period)
-cordaid$month <- as.yearmon(paste0(substr(cordaid$period, 1, 4), '-', substr(cordaid$period, 5,6)))
+cordaid$month <- zoo::as.yearmon(paste0(substr(cordaid$period, 1, 4), '-', substr(cordaid$period, 5,6)))
+
 cat_comb_ancien <- M_category_combos$CatComboOpt_id[M_category_combos$CatOpt_id.1 == 'vZ6Os4BJvum']
 
 cordaid_sous_traitement <- data.table(subset(cordaid, dataElement == 'Yj8caUQs178' & categoryOptionCombo %in% cat_comb_ancien))
@@ -218,14 +226,6 @@ composed_data_2$source <-as.factor('by line')
 composed_data <- rbind(composed_data_1, composed_data_2)
 
 
-to_plot <- merge(hh, M_hierarchy, by.x = 'orgUnit' , by.y = 'id', all.y = FALSE)
-
-
-to_plot$source <- factor(to_plot$source,levels = c('total', 'by line','estimation'), ordered = TRUE)
-ggplot(to_plot)+
-  expectedsource)) +
-  geom_line(aes(x=periods, y=values, col= orgUnit), alpha = .2) +
-  guides(col=FALSE, alpha = FALSE) + facet_wrap(~level_2_name, scales = 'free_y')
 
 
 cols <- c("Declared Patients"="#f04546","Treatment Lines"="#3591d1","Expectation"="#62c76b", "Final Values"="#000000")
