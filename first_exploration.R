@@ -131,10 +131,11 @@ make_serie <- function(data1, data2){
     if(length(values) >= 3){expected <- mean(values[(length(values)-2):length(values)])}
     if(length(values) < 3){expected <- mean(c(value1, value2))}
     ##taking into account zeros
-    if(value1 == 0){
+    window_months <- periods[[i-2,i-1,i+1,i+2]]
+    if(value1 == 0 & max(data1$value[data1$month == periods]) > 0){
       value1 <- NA
     }
-    if(value1 == 0){
+    if(value2 == 0 & max(data2$value[data2$month == periods]) > 0){
       value2 <- NA
     }
     #################
