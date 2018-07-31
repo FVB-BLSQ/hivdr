@@ -1,6 +1,8 @@
 data_dir <- 'C:/Users/Saliou/Documents/consultant/BlueSquare/sources/'
 metadata_dir <- 'C:/Users/Saliou/Documents/consultant/BlueSquare/metadata/'
 
+#modif
+
 
 ### Load Data
 
@@ -129,8 +131,12 @@ make_serie <- function(data1, data2){
     if(length(values) >= 3){expected <- mean(values[(length(values)-2):length(values)])}
     if(length(values) < 3){expected <- mean(c(value1, value2))}
     ##taking into account zeros
-    value1[i][value1[i]==0]=NA
-    value2[i][value1[i]==0]=NA
+    if(value1 == 0){
+      value1 <- NA
+    }
+    if(value1 == 0){
+      value2 <- NA
+    }
     #################
     if(is.na(value1)){
       values <- c(values, value2)
