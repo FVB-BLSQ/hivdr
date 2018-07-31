@@ -1,12 +1,12 @@
-data_dir <- '/Users/grlurton/data/dhis/rdc/hivdr/'
-metadata_dir <- '/Users/grlurton/data/dhis/rdc/hivdr/metadata/'
+data_dir <- 'C:/Users/Saliou/Documents/consultant/BlueSquare/sources/'
+metadata_dir <- 'C:/Users/Saliou/Documents/consultant/BlueSquare/metadata/'
 
 
 ### Load Data
 
 cordaid <- readRDS(paste0(data_dir, 'Cordaid_TRAITEMENTS.rds'))
 pnls <- readRDS(paste0(data_dir, 'PNLS.rds'))
-sigl2 <- readRDS(paste0(data_dir, 'SIGL2.rds'))
+#sigl2 <- readRDS(paste0(data_dir, 'SIGL2.rds'))
 
 load_metadata <- function(metadata_dir, suffix = ''){
   env <- globalenv()
@@ -19,12 +19,12 @@ load_metadata <- function(metadata_dir, suffix = ''){
 }
 
 load_metadata(metadata_dir)
-load_metadata('/Users/grlurton/data/dhis/rdc/snis/')
+#load_metadata('/Users/grlurton/data/dhis/rdc/snis/')
 
-snis_metadata <- read.csv('/Users/grlurton/data/dhis/rdc/snis/org_units_report.csv')
-snis_de <- read.csv('/Users/grlurton/data/dhis/rdc/snis/data_elements_list.csv')
+#snis_metadata <- read.csv('/Users/grlurton/data/dhis/rdc/snis/org_units_report.csv')
+#snis_de <- read.csv('/Users/grlurton/data/dhis/rdc/snis/data_elements_list.csv')
 
-snis_de
+#snis_de
 
 ### Find Data Elements of interest
 
@@ -128,6 +128,10 @@ make_serie <- function(data1, data2){
     value2 <- data2$value[data2$month == period_i]
     if(length(values) >= 3){expected <- mean(values[(length(values)-2):length(values)])}
     if(length(values) < 3){expected <- mean(c(value1, value2))}
+    ##taking into account zeros
+    value1[i][value1[i]==0]=NA
+    value2[i][value1[i]==0]=NA
+    #################
     if(is.na(value1)){
       values <- c(values, value2)
       source <- c(source, unique(data2$source))
@@ -251,3 +255,5 @@ for( i in unique(to_plot$orgUnit)){
   print(p)
 }
 dev.off()
+
+
