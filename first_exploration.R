@@ -131,8 +131,8 @@ make_serie <- function(data1, data2){
     period_i <- periods[i]
     value1 <- data1$value[data1$month == period_i]
     value2 <- data2$value[data2$month == period_i]
-    if(length(values) >= 3){expected <- mean(values[(length(values)-2):length(values)])}
-    if(length(values) < 3){expected <- mean(c(value1, value2))}
+    if(length(values) >= 3){expected <- mean(values[(length(values)-2):length(values)], na.rm=TRUE)}
+    if(length(values) < 3){expected <- mean(c(value1, value2, na.rm=TRUE))}
     ##taking into account zeros
     if(i==1){
       window_months <- periods[c(min(i+1, length(periods)),
@@ -190,6 +190,8 @@ make_serie <- function(data1, data2){
       print('check1 fails')
       if(length(values) >= 3){
         n <- length(values)
+        print(value1)
+        print(expected)
         check_2 <- ((abs(value1-expected)/expected) < .1)
         if(check_2 == TRUE){
           print('check2 ok')
