@@ -127,21 +127,14 @@ make_serie <- function(data1, data2){
   expecteds <- c()
   periods <- sort(unique(c(data1$month, data2$month)))
   for(i in seq(1, length(periods))){
+    ## Extract useful values
     period_i <- periods[i]
     value1 <- data1$value[data1$month == period_i]
     value2 <- data2$value[data2$month == period_i]
-    if(length(values) < 3){
-      expected <- mean(c(value1, value2, na.rm=TRUE))
-      values <- c(values, expected)
-      source <- c(source,'estimation')
-    }
-    if(length(values) >= 3){
-      expected <- mean(values[(length(values)-2):length(values)], na.rm=TRUE)
-    }
-    ##taking into account zeros
+    
+    ## Handle Weird values
     if(i==1){
-      window_months <- periods[c(min(i+1, length(periods)),
-                               min(i+2, length(periods)))]
+      window_months <- periods[c(min(i+1, length(periods)), min(i+2, length(periods)))]
       if((!is.na(value1)) & (value1 == 0) & (min(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
         value1 <- NA
       } 
@@ -150,70 +143,90 @@ make_serie <- function(data1, data2){
       }
     }
     if(i==2){
-      window_months <- periods[c(1,min(i+1, length(periods)),
-                               min(i+2, length(periods)))]
+      window_months <- periods[c(1,min(i+1, length(periods)), min(i+2, length(periods)))]
       if((!is.na(value1)) & (value1 == 0) & (min(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
         value1 <- NA
-       } 
+      } 
       if((!is.na(value2)) & (value2 == 0) & (min(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
-          value2 <- NA
+        value2 <- NA
       } 
       
     }
     if(i >= 3){
-    window_months <- periods[c(i-2,i-1,
-                               min(i+1, length(periods)),
-                               min(i+2, length(periods)))]
+      window_months <- periods[c(i-2,i-1, min(i+1, length(periods)), min(i+2, length(periods)))]
       if((!is.na(value1)) & (value1 == 0) & (min(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
-      value1 <- NA
+        value1 <- NA
       }
       if((!is.na(value2)) & (value2 == 0) & (min(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
-      value2 <- NA
+        value2 <- NA
       }
     }
-    #################
-    check1 <-c()
-    check1 <-c()
-    check1 <-c()
-    if(is.na(value1) & !is.na(value2)){
+    
+    ## Compute Expectations
+    if(length(values) < 3){
+      expected <- mean(c(value1, value2, na.rm=TRUE))
+    }
+    if(length(values) >= 3){
+      expected <- mean(values[(length(values)-2):length(values)], na.rm=TRUE)
+    }
+    print(paste('value 1', value1))
+    print(paste('value 2', value2))
+    print(paste('expectation', expected))
+    
+    expecteds <- c(expecteds, expected)
+    
+    ## Make tests
+    ### Test 1: value1 is missinng
+    test_1 <- is.na(value1)
+    ### Test 2: value2 is missing
+    test_2 <- is.na(value2)
+    ### Test 3: value 1 and 2 are very different
+    to_check <- (abs(value1-value2)/(max(value1,value2, na.rm=TRUE) + 0.0001))
+    test_3 <- is.finite(to_check) & (to_check < .1)
+    ### Test 4: value 1 is very different from expectation
+    test_4 <- (abs(value1-expected)/(max(value1,expected,na.rm = TRUE) + 0.0001)) < .1
+    ### Test 5 : value 2 is very different from expectation
+    test_5 <- (abs(value2-expected)/(max(value2,expected,na.rm = TRUE) + 0.0001)) < .1
+    
+    
+    ## Assign values
+    print('Doing some Tests')
+    
+    print('Check 1')
+    if(test_1 & !test_2){
       values <- c(values, value2)
-      source <- c(source, unique(data2$source))
+      source <- c(source, paste0(unique(data2$source), ' - only value' ))
     }
-    if(is.na(value2) & !is.na(value1)){
+    print('Check 2')
+    if(!test_1 & test_2){
       values <- c(values, value1)
-      source <- c(source, unique(data1$source))
+      source <- c(source, paste0(unique(data1$source), ' - only value' ))
     }
-    if(is.na(value2) & is.na(value1)){
+    print('Check 3')
+    if(test_1 & test_2){
       values <- c(values, expected)
       source <- c(source, 'expectation - no value')
     }
-    
-    if(!is.na(value1) & !is.na(value2)){
-        check1 <- (abs(value1-value2)/(value1+ 0.0001) < .1)
-        check_2 <- ((abs(value1-expected)/(expected + 0.0001)) < .1)
-        check_3 <- ((abs(value2-expected)/(expected + 0.0001)) < .1)
-      if(check1 == TRUE){
-        print('check1 ok')
-        values <- c(values, value1)
-        source <- c(source, unique(data1$source))
-          if(check1 == FALSE & check_2 == TRUE){
-            print('check1 fails, check2 ok')
-            values <- c(values, value1)
-            source <- c(source, unique(data1$source))
-            if(check1 == FALSE & check_2 == FALSE & check_3 == TRUE){
-            print('check1 fails, check2 fails, check3 ok')
-            values <- c(values, value2)
-            source <- c(source, unique(data2$source))
-              if(check1 == FALSE & check_2 == FALSE & check_3 == FALSE){
-                print('check1 fails, check2 fails, check3 fails')
-                values <- c(values, expected)
-                source <- c(source, 'estimation')
-              }
-            }
-          }
-      }
-    }  
-    expecteds <- c(expecteds, expected)
+    print('Check 4')
+    if(!test_1 & !test_2 & test_3){
+      values <- c(values, value1)
+      source <- c(source, paste0(unique(data1$source), ' - data in accordance'))
+    }
+    print('Check 5')
+    if(!test_1 & !test_2 & !test_3 & test_4){
+      values <- c(values, value1)
+      source <- c(source, paste0(unique(data1$source), ' - ', unique(data1$source), ' seems strange'))
+    }
+    print('Check 6')
+    if(!test_1 & !test_2 & !test_3 & !test_4 & test_5){
+      values <- c(values, value2)
+      source <- c(source, paste0(unique(data2$source), ' - ', unique(data1$source), ' seems strange'))
+    }
+    print('Check 7')
+    if(!test_1 & !test_2 & !test_3 & !test_4 & !test_5){
+      values <- c(values, expected)
+      source <- c(source, paste0('expectation - data is strange'))
+    }
   }
   print(periods)
   print(values)
@@ -269,7 +282,7 @@ ggplot(to_plot[to_plot$orgUnit %in% sample, ])+
     geom_line(aes(x=periods, y=expected, colour= 'Expectation'), alpha=.5)+
     geom_point(aes(x=periods, y=values, colour="Final Values")) +
     geom_line(aes(x=periods, y = values, colour="Final Values")) +
-    scale_colour_manual(name="Source",values=cols) +
+    scale_colour_manual(name="Source" + ,values=cols) +
     guides(alpha = FALSE)+
     facet_wrap(~name, scales = 'free_y') +
     #ylim(0,max(dat_plot[,c('value_1','value_2','expected','values')])) +
