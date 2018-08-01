@@ -24,7 +24,7 @@ load_metadata(metadata_dir)
 
 M_data_sets[M_data_sets$DE_id %in% cordaid$dataElement,c('DE_id', 'DE_name')]
 M_data_sets[M_data_sets$DE_id %in% sigl2$dataElement,c('DE_id', 'DE_name')]
-M_data_sets[M_data_sets$DE_id %in% dat_pnls$dataElement,c('DE_id', 'DE_name')]
+M_data_sets[M_data_sets$DE_id %in% pnls$dataElement,c('DE_id', 'DE_name')]
 
 sum(M_data_sets$DE_id %in% cordaid$dataElement)
 sum(M_data_sets$DE_id %in% sigl2$dataElement)
