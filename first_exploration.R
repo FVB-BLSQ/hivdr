@@ -34,7 +34,7 @@ load_metadata(metadata_dir)
 ### Find Data Elements of interest
 
 M_data_sets[M_data_sets$DE_id %in% cordaid$dataElement,c('DE_id', 'DE_name')]
-M_data_sets[M_data_sets$DE_id %in% pnls$dataElement,c('DE_id', 'DE_name')]
+#M_data_sets[M_data_sets$DE_id %in% pnls$dataElement,c('DE_id', 'DE_name')]
 
 
 
@@ -134,10 +134,31 @@ make_serie <- function(data1, data2){
     if(length(values) >= 3){expected <- mean(values[(length(values)-2):length(values)])}
     if(length(values) < 3){expected <- mean(c(value1, value2))}
     ##taking into account zeros
+    if(i==1){
+      window_months <- periods[c(min(i+1, length(periods)),
+                               min(i+2, length(periods)))]
+      if((!is.na(value1)) & (value1 == 0) & (min(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
+        value1 <- NA
+      } 
+      if((!is.na(value2)) & (value2 == 0) & (min(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
+        value2 <- NA
+      }
+    }
+    if(i==2){
+      window_months <- periods[c(1,min(i+1, length(periods)),
+                               min(i+2, length(periods)))]
+      if((!is.na(value1)) & (value1 == 0) & (min(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
+        value1 <- NA
+       } 
+      if((!is.na(value2)) & (value2 == 0) & (min(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
+          value2 <- NA
+      } 
+      
+    }
     if(i >= 3){
     window_months <- periods[c(i-2,i-1,
-                               max(i+1, length(periods)),
-                               max(i+2, length(periods)))]
+                               min(i+1, length(periods)),
+                               min(i+2, length(periods)))]
     if((!is.na(value1)) & (value1 == 0) & (min(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
       value1 <- NA
     }
@@ -271,8 +292,6 @@ ggplot(to_plot)+
   geom_point(aes(x=periods, y=values, colour= orgUnit, shape=source), size = 1.2) +
   geom_line(aes(x=periods, y=values, col= orgUnit), alpha = .2) +
   guides(col=FALSE, alpha = FALSE) + facet_wrap(~level_2_name, scales = 'free_y')
-
-
 
 pdf("plots.pdf", onefile = TRUE)
 for( i in unique(to_plot$orgUnit)){
