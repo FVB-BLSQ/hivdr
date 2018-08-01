@@ -121,7 +121,6 @@ make_moving_average <- function(data){
   rollmean(dat, 3, fill = NA, align = "right")
 }
 
-
 make_serie <- function(data1, data2){
   values <- c()
   source <- c()
@@ -131,8 +130,14 @@ make_serie <- function(data1, data2){
     period_i <- periods[i]
     value1 <- data1$value[data1$month == period_i]
     value2 <- data2$value[data2$month == period_i]
-    if(length(values) >= 3){expected <- mean(values[(length(values)-2):length(values)], na.rm=TRUE)}
-    if(length(values) < 3){expected <- mean(c(value1, value2, na.rm=TRUE))}
+    if(length(values) < 3){
+      expected <- mean(c(value1, value2, na.rm=TRUE))
+      values <- c(values, expected)
+      source <- c(source,'estimation')
+    }
+    if(length(values) >= 3){
+      expected <- mean(values[(length(values)-2):length(values)], na.rm=TRUE)
+    }
     ##taking into account zeros
     if(i==1){
       window_months <- periods[c(min(i+1, length(periods)),
@@ -159,12 +164,12 @@ make_serie <- function(data1, data2){
     window_months <- periods[c(i-2,i-1,
                                min(i+1, length(periods)),
                                min(i+2, length(periods)))]
-    if((!is.na(value1)) & (value1 == 0) & (min(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
+      if((!is.na(value1)) & (value1 == 0) & (min(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
       value1 <- NA
-    }
-    if((!is.na(value2)) & (value2 == 0) & (min(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
+      }
+      if((!is.na(value2)) & (value2 == 0) & (min(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
       value2 <- NA
-    }
+      }
     }
     #################
     if(is.na(value1) & !is.na(value2)){
@@ -180,50 +185,32 @@ make_serie <- function(data1, data2){
       source <- c(source, 'expectation - no value')
     }
     if(!is.na(value1) & !is.na(value2)){
-    check1 <- (abs(value1-value2)/value1 < .1) 
+    check1 <- (abs(value1-value2)/(value1+ 0.0001) < .1)
+    check_2 <- ((abs(value1-expected)/(expected + 0.0001)) < .1)
+    check_3 <- ((abs(value2-expected)/(expected + 0.0001)) < .1)
+    }
+    
     if(check1 == TRUE){
       print('check1 ok')
       values <- c(values, value1)
       source <- c(source, unique(data1$source))
     }
-    if(check1 == FALSE){
-      print('check1 fails')
-      if(length(values) >= 3){
-        n <- length(values)
-        print(value1)
-        print(expected)
-        check_2 <- ((abs(value1-expected)/expected) < .1)
-        if(check_2 == TRUE){
-          print('check2 ok')
+    if(check1 == FALSE & check_2 == TRUE){
+      print('check1 fails, check2 ok')
           values <- c(values, value1)
           source <- c(source, unique(data1$source))
-        }
-        if(check_2 == FALSE){
-          print('check2 fails')
-          if(expected > 0){
-            check_3 <- ((abs(value2-expected)/expected) < .1) 
-          }
-          if(expected == 0){
-            check_3 <- ((abs(value2-expected)/(expected + 0.1)) < .1) 
-          }
-          if(check_3 == TRUE){
-            print('check3 ok')
+    }
+    if(check1 == FALSE & check_2 == FALSE & check_3 == TRUE){
+            print('check1 fails, check2 fails, check3 ok')
             values <- c(values, value2)
             source <- c(source, unique(data2$source))
-          }
-          if(check_3 == FALSE){
-            print('check3 fails')
+    }
+    if(check1 == FALSE & check_2 == FALSE & check_3 == FALSE){
+            print('check1 fails, check2 fails, check3 fails')
             values <- c(values, expected)
             source <- c(source, 'estimation')
-          }
-        }
-      }
-      if(length(values) < 3){
-        values <- c(values, expected)
-        source <- c(source,'estimation')
-      }
     }
-    }
+      
     expecteds <- c(expecteds, expected)
   }
   print(periods)
