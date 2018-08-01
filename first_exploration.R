@@ -172,6 +172,9 @@ make_serie <- function(data1, data2){
       }
     }
     #################
+    check1 <-c()
+    check1 <-c()
+    check1 <-c()
     if(is.na(value1) & !is.na(value2)){
       values <- c(values, value2)
       source <- c(source, unique(data2$source))
@@ -184,33 +187,32 @@ make_serie <- function(data1, data2){
       values <- c(values, expected)
       source <- c(source, 'expectation - no value')
     }
-    if(!is.na(value1) & !is.na(value2)){
-    check1 <- (abs(value1-value2)/(value1+ 0.0001) < .1)
-    check_2 <- ((abs(value1-expected)/(expected + 0.0001)) < .1)
-    check_3 <- ((abs(value2-expected)/(expected + 0.0001)) < .1)
-    }
     
-    if(check1 == TRUE){
-      print('check1 ok')
-      values <- c(values, value1)
-      source <- c(source, unique(data1$source))
-    }
-    if(check1 == FALSE & check_2 == TRUE){
-      print('check1 fails, check2 ok')
-          values <- c(values, value1)
-          source <- c(source, unique(data1$source))
-    }
-    if(check1 == FALSE & check_2 == FALSE & check_3 == TRUE){
+    if(!is.na(value1) & !is.na(value2)){
+        check1 <- (abs(value1-value2)/(value1+ 0.0001) < .1)
+        check_2 <- ((abs(value1-expected)/(expected + 0.0001)) < .1)
+        check_3 <- ((abs(value2-expected)/(expected + 0.0001)) < .1)
+      if(check1 == TRUE){
+        print('check1 ok')
+        values <- c(values, value1)
+        source <- c(source, unique(data1$source))
+          if(check1 == FALSE & check_2 == TRUE){
+            print('check1 fails, check2 ok')
+            values <- c(values, value1)
+            source <- c(source, unique(data1$source))
+            if(check1 == FALSE & check_2 == FALSE & check_3 == TRUE){
             print('check1 fails, check2 fails, check3 ok')
             values <- c(values, value2)
             source <- c(source, unique(data2$source))
-    }
-    if(check1 == FALSE & check_2 == FALSE & check_3 == FALSE){
-            print('check1 fails, check2 fails, check3 fails')
-            values <- c(values, expected)
-            source <- c(source, 'estimation')
-    }
-      
+              if(check1 == FALSE & check_2 == FALSE & check_3 == FALSE){
+                print('check1 fails, check2 fails, check3 fails')
+                values <- c(values, expected)
+                source <- c(source, 'estimation')
+              }
+            }
+          }
+      }
+    }  
     expecteds <- c(expecteds, expected)
   }
   print(periods)
