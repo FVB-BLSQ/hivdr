@@ -70,16 +70,10 @@ ggplot(data = cordaid_sous_traitement) +
   geom_line(aes(x=month, y=n_patients, col= orgUnit)) +
   guides(col=FALSE) + facet_wrap(~parent.parent.parent.name, scales = 'free_y')
 
-
-
-
-
-
 cordaid_traitements_id <- M_data_sets$DE_id[grep('\\+|(à préciser)' , M_data_sets$DE_name[M_data_sets$DE_id %in% cordaid$dataElement])]
 cordaid_traitements <- data.table(subset(cordaid, dataElement %in% cordaid_traitements_id & categoryOptionCombo %in% cat_comb_ancien))
 cordaid_traitements <- cordaid_traitements[, .(n_patients_ligne = sum(value)),
                                                    by=c('orgUnit',"month","parent.parent.parent.name", "parent.parent.parent.id", "parent.parent.name", "parent.parent.id")]
-
 
 
 compare <- merge(cordaid_traitements, cordaid_sous_traitement,all=TRUE)
@@ -121,6 +115,12 @@ make_moving_average <- function(data){
   rollmean(dat, 3, fill = NA, align = "right")
 }
 
+
+
+
+
+
+
 make_serie <- function(data1, data2){
   values <- c()
   source <- c()
@@ -131,8 +131,9 @@ make_serie <- function(data1, data2){
     period_i <- periods[i]
     value1 <- data1$value[data1$month == period_i]
     value2 <- data2$value[data2$month == period_i]
-    
-    ## Handle Weird values
+    if(length(values) >= 3){expected <- mean(values[(length(values)-2):length(values)], na.rm=TRUE)}
+    if(length(values) < 3){expected <- mean(c(value1, value2, na.rm=TRUE))}
+    ##taking into account zeros
     if(i==1){
       window_months <- periods[c(min(i+1, length(periods)), min(i+2, length(periods)))]
       if((!is.na(value1)) & (value1 == 0) & (min(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
@@ -260,7 +261,6 @@ serying <- function(data){
   return(out)
 }
 
-
 ## Building the full series
 completed_data <- full_data %>% group_by(.,orgUnit) %>% do(serying(.))
 
@@ -269,7 +269,7 @@ to_plot <- merge(completed_data, M_hierarchy, by.x = 'orgUnit' , by.y = 'id', al
 
 ## Plotting
 
-cols <- c("Declared Patients"="#f04546","Treatment Lines"="#3591d1","Expectation"="#62c76b", "Final Values"="#000000")
+cols <- c("Declared Patients"="#e31a1c","Treatment Lines"="#1f78b4","Expectation"="#33a02c", "Final Values"="#000000")
 
 ## A sample for troubleshooting
 sample <- sample(unique(to_plot$orgUnit),size = 16)
@@ -282,7 +282,7 @@ ggplot(to_plot[to_plot$orgUnit %in% sample, ])+
     geom_line(aes(x=periods, y=expected, colour= 'Expectation'), alpha=.5)+
     geom_point(aes(x=periods, y=values, colour="Final Values")) +
     geom_line(aes(x=periods, y = values, colour="Final Values")) +
-    scale_colour_manual(name="Source" + ,values=cols) +
+    scale_colour_manual(name="Source", values=cols) +
     guides(alpha = FALSE)+
     facet_wrap(~name, scales = 'free_y') +
     #ylim(0,max(dat_plot[,c('value_1','value_2','expected','values')])) +
@@ -309,7 +309,7 @@ for( i in unique(to_plot$orgUnit)){
     geom_line(aes(x=periods, y=expected, colour= 'Expectation'), alpha=.5)+
     geom_point(aes(x=periods, y=values, colour="Final Values")) +
     geom_line(aes(x=periods, y = values, colour="Final Values")) +
-    scale_colour_manual(name="Source",values=cols) +
+    scale_colour_manual(name="Source", values=cols) +
     guides(alpha = FALSE)+
     ylim(0,max(dat_plot[,c('value_1','value_2','expected','values')])) +
     theme_bw() +
