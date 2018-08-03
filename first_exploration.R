@@ -125,6 +125,7 @@ make_serie <- function(data1, data2){
   values <- c()
   source <- c()
   expecteds <- c()
+  comment <- c()
   periods <- sort(unique(c(data1$month, data2$month)))
   for(i in seq(1, length(periods))){
     ## Extract useful values
@@ -169,10 +170,6 @@ make_serie <- function(data1, data2){
     if(length(values) >= 3){
       expected <- mean(values[(length(values)-2):length(values)], na.rm=TRUE)
     }
-    print(paste('value 1', value1))
-    print(paste('value 2', value2))
-    print(paste('expectation', expected))
-    
     expecteds <- c(expecteds, expected)
     
     ## Make tests
@@ -192,40 +189,47 @@ make_serie <- function(data1, data2){
     ## Assign values
     print('Doing some Tests')
     
-    print('Check 1')
+    print('Check 1') #> rajouter consistence locale
     if(test_1 & !test_2){
       values <- c(values, value2)
-      source <- c(source, paste0(unique(data2$source), ' - only value' ))
+      source <- c(source, unique(data2$source))
+      comment <- c(comment, 'Unique source')
     }
     print('Check 2')
     if(!test_1 & test_2){
       values <- c(values, value1)
-      source <- c(source, paste0(unique(data1$source), ' - only value' ))
+      source <- c(source, unique(data1$source))
+      comment <- c(comment, 'Unique source')
     }
     print('Check 3')
     if(test_1 & test_2){
       values <- c(values, expected)
-      source <- c(source, 'expectation - no value')
+      source <- c(source, 'expectation')
+      comment <- c(comment, 'No data')
     }
     print('Check 4')
     if(!test_1 & !test_2 & test_3){
       values <- c(values, value1)
-      source <- c(source, paste0(unique(data1$source), ' - data in accordance'))
+      source <- c(source, unique(data1$source))
+      comment <- c(comment, 'Coherent data')
     }
     print('Check 5')
     if(!test_1 & !test_2 & !test_3 & test_4){
       values <- c(values, value1)
-      source <- c(source, paste0(unique(data1$source), ' - ', unique(data1$source), ' seems strange'))
+      source <- c(source, unique(data1$source))
+      comment <- c(comment, 'Incoherent data')
     }
     print('Check 6')
     if(!test_1 & !test_2 & !test_3 & !test_4 & test_5){
       values <- c(values, value2)
-      source <- c(source, paste0(unique(data2$source), ' - ', unique(data1$source), ' seems strange'))
+      source <- c(source, unique(data2$source))
+      comment <- c(comment, 'Incoherent data')
     }
     print('Check 7')
     if(!test_1 & !test_2 & !test_3 & !test_4 & !test_5){
       values <- c(values, expected)
-      source <- c(source, paste0('expectation - data is strange'))
+      source <- c(source,'estimation')
+      comment <- c(comment, 'Incoherent data')
     }
   }
   print(periods)
@@ -233,8 +237,9 @@ make_serie <- function(data1, data2){
   print(source)
   print(expecteds)
   out <- data.frame('periods'=periods,'values'=values, 'source'=source, 'expected' = expecteds , 
-                    value_1 = data1$value[data1$month == periods], 
-                    value_2 = data2$value[data2$month == periods])
+                    'value_1' = data1$value[data1$month == periods], 
+                    'value_2' = data2$value[data2$month == periods],
+                    'comment'= comment)
   
   
   return(out)
@@ -271,6 +276,8 @@ to_plot <- merge(completed_data, M_hierarchy, by.x = 'orgUnit' , by.y = 'id', al
 
 cols <- c("Declared Patients"="#f04546","Treatment Lines"="#3591d1","Expectation"="#62c76b", "Final Values"="#000000")
 
+
+
 ## A sample for troubleshooting
 sample <- sample(unique(to_plot$orgUnit),size = 16)
 ggplot(to_plot[to_plot$orgUnit %in% sample, ])+
@@ -280,17 +287,25 @@ ggplot(to_plot[to_plot$orgUnit %in% sample, ])+
     geom_line(aes(x=periods, y=value_2, colour= 'Treatment Lines'), alpha=.5)+
     geom_point(aes(x=periods, y=expected, colour= 'Expectation'), alpha=.5) +
     geom_line(aes(x=periods, y=expected, colour= 'Expectation'), alpha=.5)+
-    geom_point(aes(x=periods, y=values, colour="Final Values")) +
+    geom_point(aes(x=periods, y=values, colour="Final Values", shape=source), size = 2) +
     geom_line(aes(x=periods, y = values, colour="Final Values")) +
-    scale_colour_manual(name="Source" + ,values=cols) +
+    scale_colour_manual(name="Source" , values=cols) +
     guides(alpha = FALSE)+
     facet_wrap(~name, scales = 'free_y') +
     #ylim(0,max(dat_plot[,c('value_1','value_2','expected','values')])) +
     theme_bw() +
     theme(axis.title.x = element_text(size = 15, vjust=-.2)) +
     theme(axis.title.y = element_text(size = 15, vjust=0.3)) +
-    ylab("N Patients") + xlab("Year 2017")
+    ylab("N Patients") + xlab("Year 2017")  +
+    guides(shape=guide_legend(title="Comment"))
  
+ggplot(to_plot[to_plot$orgUnit %in% sample, ])+
+  geom_line(aes(x= periods, y=values), alpha=.5)+
+  geom_point(aes(x= periods, y=values, color=source, shape=comment))+
+  facet_wrap(~name, scales='free_y')
+
+
+
 to_plot$source <- factor(to_plot$source,levels = c('total', 'by line','estimation'), ordered = TRUE)
 ggplot(to_plot)+
   geom_point(aes(x=periods, y=values, colour= orgUnit, shape=source), size = 1.2) +
@@ -321,5 +336,17 @@ for( i in unique(to_plot$orgUnit)){
 dev.off()
 
 
+export_1 <- completed_data[c('orgUnit','periods','values')]
+export_2 <-  completed_data[c('orgUnit','periods','source')]
+export_3 <-  completed_data[c('orgUnit','periods','comment')]
+
+colnames(export_1) <- colnames(export_2) <- colnames(export_3) <- c('OU_id','Period','data_value')
+export_1$data_value <- as.character(export_1$data_value)
+export_1$DE_id <- 'ACCEPTED_VALUE'
+export_2$DE_id <- 'ACCEPTED_SOURCE'
+export_3$DE_id <- 'DATA_VALUE_COMMENT'
+
+export <- rbind(as.data.frame(export_2), as.data.frame(export_2), as.data.frame(export_3))
 
 
+write.csv(export, 'export_to_dataviz.csv')
