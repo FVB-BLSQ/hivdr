@@ -13,6 +13,16 @@ cordaid <- readRDS(paste0(data_dir, 'Cordaid_TRAITEMENTS.rds'))
 pnls <- readRDS(paste0(data_dir, 'PNLS.rds'))
 #sigl2 <- readRDS(paste0(data_dir, 'SIGL2.rds'))
 
+
+## pnls and cordaid
+
+pnls_cordaid <- pnls[pnls$orgUnit %in% cordaid$orgUnit,]
+cordaid_pnls <-  cordaid[cordaid$orgUnit %in% pnls$orgUnit,]
+
+
+
+
+
 load_metadata <- function(metadata_dir, suffix = ''){
   env <- globalenv()
   assign(paste0('M_category_combos', suffix) , readRDS(paste0(metadata_dir, 'CC_metadata.rds')), env)
@@ -24,14 +34,6 @@ load_metadata <- function(metadata_dir, suffix = ''){
 }
 
 load_metadata(metadata_dir)
-#load_metadata('/Users/grlurton/data/dhis/rdc/snis/')
-
-#snis_metadata <- read.csv('/Users/grlurton/data/dhis/rdc/snis/org_units_report.csv')
-#snis_de <- read.csv('/Users/grlurton/data/dhis/rdc/snis/data_elements_list.csv')
-
-#snis_de
-
-### Find Data Elements of interest
 
 M_data_sets[M_data_sets$DE_id %in% cordaid$dataElement,c('DE_id', 'DE_name')]
 #M_data_sets[M_data_sets$DE_id %in% pnls$dataElement,c('DE_id', 'DE_name')]
@@ -130,8 +132,13 @@ make_serie <- function(data1, data2){
   for(i in seq(1, length(periods))){
     ## Extract useful values
     period_i <- periods[i]
+    print(period_i)
     value1 <- data1$value[data1$month == period_i]
+    if (length(value1) == 0){value1 <- NA}
+    print(value1)
     value2 <- data2$value[data2$month == period_i]
+    if (length(value2) == 0){value2 <- NA}
+    print(value2)
     if(length(values) >= 3){expected <- mean(values[(length(values)-2):length(values)], na.rm=TRUE)}
     if(length(values) < 3){expected <- mean(c(value1, value2, na.rm=TRUE))}
     ##taking into account zeros
@@ -205,7 +212,7 @@ make_serie <- function(data1, data2){
     print('Check 3')
     if(test_1 & test_2){
       values <- c(values, expected)
-      source <- c(source, 'expectation')
+      source <- c(source, 'estimation')
       comment <- c(comment, 'No data')
     }
     print('Check 4')
@@ -238,9 +245,11 @@ make_serie <- function(data1, data2){
   print(source)
   print(expecteds)
   out <- data.frame('periods'=periods,'values'=values, 'source'=source, 'expected' = expecteds , 
-                    'value_1' = data1$value[data1$month == periods], 
-                    'value_2' = data2$value[data2$month == periods],
+                    #'value_1' = data1$value[data1$month == periods], 
+                    #'value_2' = data2$value[data2$month == periods],
                     'comment'= comment)
+  out$value_1[periods] <- data1$value[data1$month == periods]
+  out$value_2[periods] <- data1$value[data2$month == periods]
   
   
   return(out)
@@ -350,3 +359,103 @@ export <- rbind(as.data.frame(export_2), as.data.frame(export_2), as.data.frame(
 
 
 write.csv(export, 'export_to_dataviz.csv')
+
+
+
+## COMPARE PNLS AND CORDAID
+
+# series with total nnumbers currently on ART
+cordaid_id <- 'Yj8caUQs178'
+pnls_id <- 'Dd2G5zI0o0a'
+
+cat_comb_ancien <- M_category_combos$CatComboOpt_id[M_category_combos$CatOpt_id.1 %in% c('vZ6Os4BJvum','ggod3chlUCG')]
+
+cordaid_total_arv <- cordaid_pnls[(cordaid_pnls$dataElement == cordaid_id) & (cordaid_pnls$categoryOptionCombo %in% cat_comb_ancien),]
+pnls_total_arv <- pnls_cordaid[(pnls_cordaid$dataElement == pnls_id)& (pnls_cordaid$categoryOptionCombo %in% cat_comb_ancien),]
+
+cordaid_total_arv <- cordaid_total_arv %>% group_by(period, orgUnit) %>% summarize('value' = sum(value))
+pnls_total_arv <- pnls_total_arv %>% group_by(period, orgUnit) %>% summarize('value' = sum(value))
+
+compare <- merge(pnls_total_arv,cordaid_total_arv,by=c('period', 'orgUnit'), suffixes = c('pnls', 'cordaid'))
+
+ggplot(compare) +
+  geom_point(aes(valuepnls, valuecordaid))
+
+cordaid_total_arv <- subset(cordaid_total_arv, select=c(period, value, orgUnit))
+pnls_total_arv$period <- as.character(pnls_total_arv$period)
+pnls_total_arv$orgUnit <- as.character(pnls_total_arv$orgUnit)
+cordaid_total_arv$orgUnit <- as.character(cordaid_total_arv$orgUnit)
+pnls_total_arv <- subset(pnls_total_arv, select=c(period, value, orgUnit))
+
+colnames(cordaid_total_arv) <-colnames(pnls_total_arv) <- c('month', 'value', 'orgUnit')
+cordaid_total_arv$source <- 'cordaid'
+pnls_total_arv$source <- 'pnls'
+
+full_data <- rbind(as.data.frame(pnls_total_arv),
+                   as.data.frame(cordaid_total_arv))
+
+
+## Building the full series
+
+
+serying <- function(data){
+  data1 <- data[data$source == 'cordaid',]
+  data2 <- data[data$source == 'pnls',]
+  print('making a serie')
+  out <- make_serie(data1, data2)
+  return(out)
+}
+completed_data <- full_data %>% group_by(.,orgUnit) %>% do(serying(.))
+
+## Making a plotable df
+to_plot <- merge(completed_data, M_hierarchy, by.x = 'orgUnit' , by.y = 'id', all.y = FALSE)
+
+## Plotting
+
+cols <- c("Cordaid"="#e31a1c","PNLS"="#1f78b4","Expectation"="#33a02c", "Final Values"="#000000")
+
+
+
+## A sample for troubleshooting
+sample <- sample(unique(to_plot$orgUnit),size = 16)
+ggplot(to_plot[to_plot$orgUnit %in% sample, ])+
+  geom_point(aes(x=periods, y=value_1, colour= 'Cordaid') , alpha=.5) +
+  geom_line(aes(x=periods, y=value_1, colour= 'Cordaid'), alpha=.5)+    
+  geom_point(aes(x=periods, y=value_2, colour= 'PNLS'), alpha=.5) +
+  geom_line(aes(x=periods, y=value_2, colour= 'PNLS'), alpha=.5)+
+  geom_point(aes(x=periods, y=expected, colour= 'Expectation'), alpha=.5) +
+  geom_line(aes(x=periods, y=expected, colour= 'Expectation'), alpha=.5)+
+  geom_point(aes(x=periods, y=values, colour="Final Values", shape=source), size = 2) +
+  geom_line(aes(x=periods, y = values, colour="Final Values")) +
+  scale_colour_manual(name="Source", values=cols) +
+  guides(alpha = FALSE)+
+  facet_wrap(~name, scales = 'free_y') +
+  #ylim(0,max(dat_plot[,c('value_1','value_2','expected','values')])) +
+  theme_bw() +
+  theme(axis.title.x = element_text(size = 15, vjust=-.2)) +
+  theme(axis.title.y = element_text(size = 15, vjust=0.3)) +
+  ylab("N Patients") + xlab("Year 2017")  +
+  guides(shape=guide_legend(title="Comment"))
+
+ggplot(to_plot[to_plot$orgUnit %in% sample, ])+
+  geom_line(aes(x= periods, y=values))+
+  geom_point(aes(x= periods, y=values, color=source, shape=comment))+
+  facet_wrap(~name, scales='free_y')
+
+
+
+
+export_1 <- completed_data[c('orgUnit','periods','values')]
+export_2 <-  completed_data[c('orgUnit','periods','source')]
+export_3 <-  completed_data[c('orgUnit','periods','comment')]
+
+colnames(export_1) <- colnames(export_2) <- colnames(export_3) <- c('OU_id','Period','data_value')
+export_1$data_value <- as.character(export_1$data_value)
+export_1$DE_id <- 'ACCEPTED_VALUE'
+export_2$DE_id <- 'ACCEPTED_SOURCE'
+export_3$DE_id <- 'DATA_VALUE_COMMENT'
+
+export <- rbind(as.data.frame(export_2), as.data.frame(export_2), as.data.frame(export_3))
+
+
+write.csv(export, 'export_to_dataviz_pnls_cordaid.csv')
