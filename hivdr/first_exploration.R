@@ -248,8 +248,8 @@ make_serie <- function(data1, data2){
                     #'value_1' = data1$value[data1$month == periods], 
                     #'value_2' = data2$value[data2$month == periods],
                     'comment'= comment)
-  msdata$value_1[msdata $period == periods]<- data1$value[data1$month == periods]
-  msdata$value_2[msdata $period == periods]<- data2$value[data2$month == periods]
+  msdata$value_1[msdata$period == periods]<- data1$value[data1$month == periods]
+  msdata$value_2[msdata$period == periods]<- data2$value[data2$month == periods]
   return(msdata )
 }
 
@@ -274,13 +274,13 @@ serying <- function(data){
 }
 
 ## Building the full series
-complete_data <- function(data){
-  out<- serying(data)
-  return(out)
+completed_data <- function(data){
+  data<- full_data %>% group_by(.,orgUnit) %>% do(serying(.))
+  return(data)
 }
 
 ## Building the full series
-completed_data <- full_data %>% group_by(.,orgUnit) %>% do(serying(.))
+#completed_data <- full_data %>% group_by(.,orgUnit) %>% do(serying(.))
 
 ## Making a plotable df
 to_plot <- merge(completed_data, M_hierarchy, by.x = 'orgUnit' , by.y = 'id', all.y = FALSE)
@@ -294,9 +294,10 @@ cols <- c("Declared Patients"="#e31a1c","Treatment Lines"="#1f78b4","Expectation
 ## A sample for troubleshooting
 
 
-sample <- sample(unique(to_plot$orgUnit),size = 16)
 
-plotfunction<- function(msdata, sample){
+
+plotfunction<- function(toplot, sample){
+sample <- sample(unique(to_plot$orgUnit),size = 16)
 toplot=ggplot(to_plot[to_plot$orgUnit %in% sample, ])+
     geom_point(aes(x=periods, y=value_1, colour= 'Declared Patients') , alpha=.5) +
     geom_line(aes(x=periods, y=value_1, colour= 'Declared Patients'), alpha=.5)+    
@@ -332,7 +333,7 @@ ggplot(to_plot)+
   geom_line(aes(x=periods, y=values, col= orgUnit), alpha = .2) +
   guides(col=FALSE, alpha = FALSE) + facet_wrap(~level_2_name, scales = 'free_y')
 
-pdf_plot <- function(msdata, plots.pdf){
+pdf_plot <- function(p, plots.pdf, dir0){
 pdf(paste(dir0, "plots.pdf"), onefile = TRUE)
   for( i in unique(to_plot$orgUnit)){
   dat_plot <- to_plot[to_plot$orgUnit == i, ]
@@ -356,7 +357,7 @@ pdf(paste(dir0, "plots.pdf"), onefile = TRUE)
   }
 }
 dev.off()
-pdf_plot(msdata, plots.pdf)
+pdf_plot(msdata, plots.pdf, data_dir)
 
 
 
