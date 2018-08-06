@@ -244,13 +244,13 @@ make_serie <- function(data1, data2){
   print(values)
   print(source)
   print(expecteds)
-  out <- data.frame('periods'=periods,'values'=values, 'source'=source, 'expected' = expecteds , 
+  msdata <- data.frame('periods'=periods,'values'=values, 'source'=source, 'expected' = expecteds , 
                     #'value_1' = data1$value[data1$month == periods], 
                     #'value_2' = data2$value[data2$month == periods],
                     'comment'= comment)
-  out$value_1[out$period == periods]<- data1$value[data1$month == periods]
-  out$value_2[out$period == periods]<- data2$value[data2$month == periods]
-  return(out)
+  msdata$value_1[msdata $period == periods]<- data1$value[data1$month == periods]
+  msdata$value_2[msdata $period == periods]<- data2$value[data2$month == periods]
+  return(msdata )
 }
 
 ## pb 1: 0 still taken in the sliding averages
@@ -274,6 +274,12 @@ serying <- function(data){
 }
 
 ## Building the full series
+complete_data <- function(data){
+  out<- serying(data)
+  return(out)
+}
+
+## Building the full series
 completed_data <- full_data %>% group_by(.,orgUnit) %>% do(serying(.))
 
 ## Making a plotable df
@@ -286,8 +292,12 @@ cols <- c("Declared Patients"="#e31a1c","Treatment Lines"="#1f78b4","Expectation
 
 
 ## A sample for troubleshooting
+
+
 sample <- sample(unique(to_plot$orgUnit),size = 16)
-ggplot(to_plot[to_plot$orgUnit %in% sample, ])+
+
+plotfunction<- function(msdata, sample){
+toplot=ggplot(to_plot[to_plot$orgUnit %in% sample, ])+
     geom_point(aes(x=periods, y=value_1, colour= 'Declared Patients') , alpha=.5) +
     geom_line(aes(x=periods, y=value_1, colour= 'Declared Patients'), alpha=.5)+    
     geom_point(aes(x=periods, y=value_2, colour= 'Treatment Lines'), alpha=.5) +
@@ -305,7 +315,10 @@ ggplot(to_plot[to_plot$orgUnit %in% sample, ])+
     theme(axis.title.y = element_text(size = 15, vjust=0.3)) +
     ylab("N Patients") + xlab("Year 2017")  +
     guides(shape=guide_legend(title="Comment"))
- 
+return(toplot)
+} 
+plotfunction(msdata, sample)
+
 ggplot(to_plot[to_plot$orgUnit %in% sample, ])+
   geom_line(aes(x= periods, y=values), alpha=.5)+
   geom_point(aes(x= periods, y=values, color=source, shape=comment))+
@@ -319,8 +332,9 @@ ggplot(to_plot)+
   geom_line(aes(x=periods, y=values, col= orgUnit), alpha = .2) +
   guides(col=FALSE, alpha = FALSE) + facet_wrap(~level_2_name, scales = 'free_y')
 
-pdf("plots.pdf", onefile = TRUE)
-for( i in unique(to_plot$orgUnit)){
+pdf_plot <- function(msdata, plots.pdf){
+pdf(paste(dir0, "plots.pdf"), onefile = TRUE)
+  for( i in unique(to_plot$orgUnit)){
   dat_plot <- to_plot[to_plot$orgUnit == i, ]
   p<- ggplot(dat_plot)+
     geom_point(aes(x=periods, y=value_1, colour= 'Declared Patients') , alpha=.5) +
@@ -339,31 +353,33 @@ for( i in unique(to_plot$orgUnit)){
     theme(axis.title.y = element_text(size = 15, vjust=0.3)) +
     ylab("N Patients") + xlab("Year 2017")
   print(p)
+  }
 }
 dev.off()
+pdf_plot(msdata, plots.pdf)
 
 
-export_1 <- completed_data[c('orgUnit','periods','values')]
-export_2 <-  completed_data[c('orgUnit','periods','source')]
-export_3 <-  completed_data[c('orgUnit','periods','comment')]
 
-colnames(export_1) <- colnames(export_2) <- colnames(export_3) <- c('OU_id','Period','data_value')
-export_1$data_value <- as.character(export_1$data_value)
-export_1$DE_id <- 'ACCEPTED_VALUE'
-export_2$DE_id <- 'ACCEPTED_SOURCE'
-export_3$DE_id <- 'DATA_VALUE_COMMENT'
-
-export <- rbind(as.data.frame(export_2), as.data.frame(export_2), as.data.frame(export_3))
-
-
-write.csv(export, 'export_to_dataviz.csv')
-
-
+exported <- function(completed_data, dir0, file_name){
+  export_1 <- completed_data[c('orgUnit','periods','values')]
+  export_2 <-  completed_data[c('orgUnit','periods','source')]
+  export_3 <-  completed_data[c('orgUnit','periods','comment')]
+  colnames(export_1) <- colnames(export_2) <- colnames(export_3) <- c('OU_id','Period','data_value')
+  export_1$data_value <- as.character(export_1$data_value)
+  export_1$DE_id <- 'ACCEPTED_VALUE'
+  export_2$DE_id <- 'ACCEPTED_SOURCE'
+  export_3$DE_id <- 'DATA_VALUE_COMMENT'
+  export <- rbind(as.data.frame(export_1), as.data.frame(export_2), as.data.frame(export_3))
+  write.csv(export, paste(dir0, "file_name"))
+  
+  return(export)
+}
+exported(completed_data, dir0 = data_dir, file_name)
 
 
 ## COMPARE PNLS AND CORDAID
 
-# series with total nnumbers currently on ART
+# series with total numbers currently on ART
 cordaid_id <- 'Yj8caUQs178'
 pnls_id <- 'Dd2G5zI0o0a'
 
@@ -441,19 +457,20 @@ ggplot(to_plot[to_plot$orgUnit %in% sample, ])+
   facet_wrap(~name, scales='free_y')
 
 
+exported(completed_data, dir0 = data_dir)
 
 
-export_1 <- completed_data[c('orgUnit','periods','values')]
-export_2 <-  completed_data[c('orgUnit','periods','source')]
-export_3 <-  completed_data[c('orgUnit','periods','comment')]
-
-colnames(export_1) <- colnames(export_2) <- colnames(export_3) <- c('OU_id','Period','data_value')
-export_1$data_value <- as.character(export_1$data_value)
-export_1$DE_id <- 'ACCEPTED_VALUE'
-export_2$DE_id <- 'ACCEPTED_SOURCE'
-export_3$DE_id <- 'DATA_VALUE_COMMENT'
-
-export <- rbind(as.data.frame(export_2), as.data.frame(export_2), as.data.frame(export_3))
 
 
-write.csv(export, 'export_to_dataviz_pnls_cordaid.csv')
+#export_1 <- completed_data[c('orgUnit','periods','values')]
+#export_2 <-  completed_data[c('orgUnit','periods','source')]
+#export_3 <-  completed_data[c('orgUnit','periods','comment')]
+#colnames(export_1) <- colnames(export_2) <- colnames(export_3) <- c('OU_id','Period','data_value')
+#export_1$data_value <- as.character(export_1$data_value)
+#export_1$DE_id <- 'ACCEPTED_VALUE'
+#export_2$DE_id <- 'ACCEPTED_SOURCE'
+#export_3$DE_id <- 'DATA_VALUE_COMMENT'
+#export <- rbind(as.data.frame(export_1), as.data.frame(export_2), as.data.frame(export_3))
+#write.csv(export, 'export_to_dataviz_pnls_cordaid.csv')
+
+
