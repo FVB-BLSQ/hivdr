@@ -1,8 +1,8 @@
 data_dir <- 'C:/Users/Saliou/Documents/consultant/BlueSquare/sources/'
 metadata_dir <- 'C:/Users/Saliou/Documents/consultant/BlueSquare/metadata/'
 
-data_dir <- '/Users/grlurton/data/dhis/rdc/hivdr/'
-metadata_dir <- '/Users/grlurton/data/dhis/rdc/hivdr/metadata/'
+
+
 
 #modif
 
@@ -36,7 +36,7 @@ load_metadata <- function(metadata_dir, suffix = ''){
 load_metadata(metadata_dir)
 
 M_data_sets[M_data_sets$DE_id %in% cordaid$dataElement,c('DE_id', 'DE_name')]
-#M_data_sets[M_data_sets$DE_id %in% pnls$dataElement,c('DE_id', 'DE_name')]
+M_data_sets[M_data_sets$DE_id %in% pnls$dataElement,c('DE_id', 'DE_name')]
 
 
 
@@ -248,10 +248,8 @@ make_serie <- function(data1, data2){
                     #'value_1' = data1$value[data1$month == periods], 
                     #'value_2' = data2$value[data2$month == periods],
                     'comment'= comment)
-  out$value_1[periods] <- data1$value[data1$month == periods]
-  out$value_2[periods] <- data1$value[data2$month == periods]
-  
-  
+  out$value_1[out$period == periods]<- data1$value[data1$month == periods]
+  out$value_2[out$period == periods]<- data2$value[data2$month == periods]
   return(out)
 }
 
@@ -344,27 +342,39 @@ for( i in unique(to_plot$orgUnit)){
 }
 dev.off()
 
+exported <- function(completed_data, dir0){
+  export_1 <- completed_data[c('orgUnit','periods','values')]
+  export_2 <-  completed_data[c('orgUnit','periods','source')]
+  export_3 <-  completed_data[c('orgUnit','periods','comment')]
+  colnames(export_1) <- colnames(export_2) <- colnames(export_3) <- c('OU_id','Period','data_value')
+  export_1$data_value <- as.character(export_1$data_value)
+  export_1$DE_id <- 'ACCEPTED_VALUE'
+  export_2$DE_id <- 'ACCEPTED_SOURCE'
+  export_3$DE_id <- 'DATA_VALUE_COMMENT'
+  export <- rbind(as.data.frame(export_1), as.data.frame(export_2), as.data.frame(export_3))
+  out <- write.csv(export, paste(dir0, "export_to_dataviz_pnls_cordaid.csv"))
+  
+  return(out)
+}
+exported(completed_data, dir0 = data_dir)
 
-export_1 <- completed_data[c('orgUnit','periods','values')]
-export_2 <-  completed_data[c('orgUnit','periods','source')]
-export_3 <-  completed_data[c('orgUnit','periods','comment')]
 
-colnames(export_1) <- colnames(export_2) <- colnames(export_3) <- c('OU_id','Period','data_value')
-export_1$data_value <- as.character(export_1$data_value)
-export_1$DE_id <- 'ACCEPTED_VALUE'
-export_2$DE_id <- 'ACCEPTED_SOURCE'
-export_3$DE_id <- 'DATA_VALUE_COMMENT'
-
-export <- rbind(as.data.frame(export_2), as.data.frame(export_2), as.data.frame(export_3))
-
-
-write.csv(export, 'export_to_dataviz.csv')
+#export_1 <- completed_data[c('orgUnit','periods','values')]
+#export_2 <-  completed_data[c('orgUnit','periods','source')]
+#export_3 <-  completed_data[c('orgUnit','periods','comment')]
+#colnames(export_1) <- colnames(export_2) <- colnames(export_3) <- c('OU_id','Period','data_value')
+#export_1$data_value <- as.character(export_1$data_value)
+#export_1$DE_id <- 'ACCEPTED_VALUE'
+#export_2$DE_id <- 'ACCEPTED_SOURCE'
+#export_3$DE_id <- 'DATA_VALUE_COMMENT'
+#export <- rbind(as.data.frame(export_1), as.data.frame(export_2), as.data.frame(export_3))
+#write.csv(export, 'export_to_dataviz.csv')
 
 
 
 ## COMPARE PNLS AND CORDAID
 
-# series with total nnumbers currently on ART
+# series with total numbers currently on ART
 cordaid_id <- 'Yj8caUQs178'
 pnls_id <- 'Dd2G5zI0o0a'
 
@@ -411,7 +421,6 @@ completed_data <- full_data %>% group_by(.,orgUnit) %>% do(serying(.))
 to_plot <- merge(completed_data, M_hierarchy, by.x = 'orgUnit' , by.y = 'id', all.y = FALSE)
 
 ## Plotting
-
 cols <- c("Cordaid"="#e31a1c","PNLS"="#1f78b4","Expectation"="#33a02c", "Final Values"="#000000")
 
 
@@ -443,19 +452,20 @@ ggplot(to_plot[to_plot$orgUnit %in% sample, ])+
   facet_wrap(~name, scales='free_y')
 
 
+exported(completed_data, dir0 = data_dir)
 
 
-export_1 <- completed_data[c('orgUnit','periods','values')]
-export_2 <-  completed_data[c('orgUnit','periods','source')]
-export_3 <-  completed_data[c('orgUnit','periods','comment')]
-
-colnames(export_1) <- colnames(export_2) <- colnames(export_3) <- c('OU_id','Period','data_value')
-export_1$data_value <- as.character(export_1$data_value)
-export_1$DE_id <- 'ACCEPTED_VALUE'
-export_2$DE_id <- 'ACCEPTED_SOURCE'
-export_3$DE_id <- 'DATA_VALUE_COMMENT'
-
-export <- rbind(as.data.frame(export_2), as.data.frame(export_2), as.data.frame(export_3))
 
 
-write.csv(export, 'export_to_dataviz_pnls_cordaid.csv')
+#export_1 <- completed_data[c('orgUnit','periods','values')]
+#export_2 <-  completed_data[c('orgUnit','periods','source')]
+#export_3 <-  completed_data[c('orgUnit','periods','comment')]
+#colnames(export_1) <- colnames(export_2) <- colnames(export_3) <- c('OU_id','Period','data_value')
+#export_1$data_value <- as.character(export_1$data_value)
+#export_1$DE_id <- 'ACCEPTED_VALUE'
+#export_2$DE_id <- 'ACCEPTED_SOURCE'
+#export_3$DE_id <- 'DATA_VALUE_COMMENT'
+#export <- rbind(as.data.frame(export_1), as.data.frame(export_2), as.data.frame(export_3))
+#write.csv(export, 'export_to_dataviz_pnls_cordaid.csv')
+
+
