@@ -144,6 +144,14 @@ make_serie <- function(data1, data2){
     test_4 <- (abs(value1-expected)/(max(value1,expected,na.rm = TRUE) + 0.0001)) < .1
     ### Test 5 : value 2 is very different from expectation
     test_5 <- (abs(value2-expected)/(max(value2,expected,na.rm = TRUE) + 0.0001)) < .1
+    ### other situations
+    check_6 <- (abs(value1-value2)/(max(value1,value2, na.rm=TRUE) + 0.0001))
+    check_7 <- (abs(value1-expected)/(max(value1,expected,na.rm = TRUE) + 0.0001))
+    check_8 <- (abs(value2-expected)/(max(value2,expected,na.rm = TRUE) + 0.0001))
+    ### Test 6 : 
+    test_6 <- check_6< check_7 #take value1
+    ### Test 7 : 
+    test_7 <- check_6< check_8 #take value1
     
     
     ## Assign values
@@ -186,7 +194,13 @@ make_serie <- function(data1, data2){
       comment <- c(comment, 'Incoherent data')
     }
     print('Check 7')
-    if(!test_1 & !test_2 & !test_3 & !test_4 & !test_5){
+    if(!test_1 & !test_2 & !test_3 & !test_4 & !test_5 & (test_6 | test_7)){
+      values <- c(values, value1)
+      source <- c(source, unique(data1$source))
+      comment <- c(comment, 'Incoherent data')
+    }
+    print('Check 8')
+    if(!test_1 & !test_2 & !test_3 & !test_4 & !test_5 & !test_6 & !test_7){
       values <- c(values, expected)
       source <- c(source,'estimation')
       comment <- c(comment, 'Incoherent data')
@@ -296,13 +310,14 @@ cols <- c("Declared Patients"="#e31a1c","Treatment Lines"="#1f78b4","Expectation
 
 
 #completed_data_cordaid <- merge(completed_data_cordaid, M_hierarchy, by.x = 'orgUnit' , by.y = 'id', all.y = FALSE)
+
 completed_data_cordaid<-completed_data(full_data, 'total', 'by line')
 
 plot_sample_completed(completed_data_cordaid, sample_size = 16, cols)
 
 
 f_plot <- function(completed_data_name, sample_size){
-  sample <- sample(unique(to_plot$orgUnit), size = sample_size) 
+  sample <- sample(unique(completed_data_name$orgUnit), size = sample_size) 
   p<-ggplot(completed_data_name[completed_data_name$orgUnit %in% sample, ])+
   geom_line(aes(x= periods, y=values), alpha=.5)+
   geom_point(aes(x= periods, y=values, color=source, shape=comment))+
@@ -310,7 +325,7 @@ f_plot <- function(completed_data_name, sample_size){
   return(p)
 }
 
-f_plot(completed_data_cordaid, sample_size = 16)
+f_plot(completed_data_cordaid, 16)
 
 pdf_plot(completed_data_cordaid, plots.pdf = 'cordaid_compare.pdf', dir0='')
 
