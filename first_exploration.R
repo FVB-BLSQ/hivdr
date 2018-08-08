@@ -225,7 +225,10 @@ serying <- function(data, name_1, name_2){
 
 completed_data <- function(full_data, name_1, name_2){
   data <- full_data %>% group_by(.,orgUnit) %>% do(serying(., name_1, name_2))
-  return(data)
+  completed_data <- as.data.frame(data)
+  print(head(completed_data))
+  completed_data_name <- merge(completed_data, M_hierarchy, by.x = 'orgUnit', by.y = 'id', all.y = FALSE)
+  return(completed_data_name)
 }
 
 plot_sample_completed <- function(completed_serie, sample_size, colors){
@@ -292,19 +295,23 @@ exported <- function(completed_data, dir0, file_name){
 ## Plotting parameter
 cols <- c("Declared Patients"="#e31a1c","Treatment Lines"="#1f78b4","Expectation"="#33a02c", "Final Values"="#000000")
 
-completed_data_cordaid <- completed_data(as.data.frame(full_data), 'total', 'by line')
 
-## TODO Integrer ça 
-completed_data_cordaid <- merge(completed_data_cordaid, M_hierarchy, by.x = 'orgUnit' , by.y = 'id', all.y = FALSE)
+#completed_data_cordaid <- merge(completed_data_cordaid, M_hierarchy, by.x = 'orgUnit' , by.y = 'id', all.y = FALSE)
+completed_data_cordaid<-completed_data(full_data, 'total', 'by line')
+
 plot_sample_completed(completed_data_cordaid, sample_size = 16, cols)
 
-## TODO Make Function for this
-ggplot(to_plot[to_plot$orgUnit %in% sample, ])+
-  geom_line(aes(x= periods, y=values), alpha=.5)+
-  geom_point(aes(x= periods, y=values, color=source, shape=comment))+
-  facet_wrap(~name, scales='free_y')
+
+f_plot <- function(to_plot){
+  plot<-ggplot(to_plot[to_plot$orgUnit %in% sample, ])+
+    geom_line(aes(x= periods, y=values), alpha=.5)+
+    geom_point(aes(x= periods, y=values, color=source, shape=comment))+
+    facet_wrap(~name, scales='free_y')
+  return(plot)
+}
 
 pdf_plot(completed_data_cordaid, plots.pdf = 'cordaid_compare.pdf', dir0='')
+
 
 
 ## COMPARE PNLS AND CORDAID
@@ -340,8 +347,7 @@ full_data <- rbind(as.data.frame(pnls_total_arv),
                    as.data.frame(cordaid_total_arv))
 
 
-completed_data_cordaid_pnls <- completed_data(as.data.frame(full_data), 'cordaid', 'pnls')
-
-## TODO Integrer ça 
-completed_data_cordaid_pnls <- merge(completed_data_cordaid_pnls, M_hierarchy, by.x = 'orgUnit' , by.y = 'id', all.y = FALSE)
+ 
+#completed_data_cordaid_pnls <- merge(completed_data_cordaid_pnls, M_hierarchy, by.x = 'orgUnit' , by.y = 'id', all.y = FALSE)
+completed_data_cordaid_pnls<-completed_data(full_data, 'cordaid', 'pnls')
 plot_sample_completed(completed_data_cordaid_pnls, sample_size = 16, cols)
