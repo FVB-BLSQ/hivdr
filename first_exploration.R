@@ -226,7 +226,6 @@ serying <- function(data, name_1, name_2){
 completed_data <- function(full_data, name_1, name_2){
   data <- full_data %>% group_by(.,orgUnit) %>% do(serying(., name_1, name_2))
   completed_data <- as.data.frame(data)
-  print(head(completed_data))
   completed_data_name <- merge(completed_data, M_hierarchy, by.x = 'orgUnit', by.y = 'id', all.y = FALSE)
   return(completed_data_name)
 }
@@ -302,13 +301,16 @@ completed_data_cordaid<-completed_data(full_data, 'total', 'by line')
 plot_sample_completed(completed_data_cordaid, sample_size = 16, cols)
 
 
-f_plot <- function(to_plot){
-  plot<-ggplot(to_plot[to_plot$orgUnit %in% sample, ])+
-    geom_line(aes(x= periods, y=values), alpha=.5)+
-    geom_point(aes(x= periods, y=values, color=source, shape=comment))+
-    facet_wrap(~name, scales='free_y')
-  return(plot)
+f_plot <- function(completed_data_name, sample_size){
+  sample <- sample(unique(to_plot$orgUnit), size = sample_size) 
+  p<-ggplot(completed_data_name[completed_data_name$orgUnit %in% sample, ])+
+  geom_line(aes(x= periods, y=values), alpha=.5)+
+  geom_point(aes(x= periods, y=values, color=source, shape=comment))+
+  facet_wrap(~name, scales='free_y')
+  return(p)
 }
+
+f_plot(completed_data_cordaid, sample_size = 16)
 
 pdf_plot(completed_data_cordaid, plots.pdf = 'cordaid_compare.pdf', dir0='')
 
@@ -351,3 +353,4 @@ full_data <- rbind(as.data.frame(pnls_total_arv),
 #completed_data_cordaid_pnls <- merge(completed_data_cordaid_pnls, M_hierarchy, by.x = 'orgUnit' , by.y = 'id', all.y = FALSE)
 completed_data_cordaid_pnls<-completed_data(full_data, 'cordaid', 'pnls')
 plot_sample_completed(completed_data_cordaid_pnls, sample_size = 16, cols)
+f_plot(completed_data_cordaid_pnls, sample_size = 16)
