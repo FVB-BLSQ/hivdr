@@ -6,8 +6,8 @@ library(data.table)
 data_dir <- 'C:/Users/Saliou/Documents/consultant/BlueSquare/sources/'
 metadata_dir <- 'C:/Users/Saliou/Documents/consultant/BlueSquare/metadata/'
 
-data_dir <- '/Users/grlurton/data/dhis/rdc/hivdr/' 
-metadata_dir <- '/Users/grlurton/data/dhis/rdc/hivdr/metadata/' 
+#data_dir <- '/Users/grlurton/data/dhis/rdc/hivdr/' 
+#metadata_dir <- '/Users/grlurton/data/dhis/rdc/hivdr/metadata/' 
 
 ### Load Data
 cordaid <- readRDS(paste0(data_dir, 'Cordaid_TRAITEMENTS.rds'))
@@ -98,9 +98,19 @@ make_serie <- function(data1, data2){
       window_months <- periods[c(min(i+1, length(periods)), min(i+2, length(periods)))]
       if((!is.na(value1)) & (value1 == 0) & (min(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
         value1 <- NA
-      } 
+      }
+      if((!is.na(value1)) & (value1 < quantile(data1$value[data1$month %in% window_months],0.25, na.rm=T) - 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T) 
+                           | value1 > quantile(data1$value[data1$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T)) 
+         & (max(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
+        value1 <- median(data1$value[data1$month %in% window_months], na.rm=TRUE)
+      }
       if((!is.na(value2)) & (value2 == 0) & (min(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
         value2 <- NA
+      }
+      if((!is.na(value2)) & (value2 < quantile(data2$value[data2$month %in% window_months],0.25, na.rm=T) - 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T) 
+                             | value2 > quantile(data2$value[data2$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T)) 
+         & (max(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
+        value2 <- median(data2$value[data2$month %in% window_months], na.rm=TRUE)
       }
     }
     if(i==2){
@@ -108,21 +118,39 @@ make_serie <- function(data1, data2){
       if((!is.na(value1)) & (value1 == 0) & (min(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
         value1 <- NA
       } 
+      if((!is.na(value1)) & (value1 < quantile(data1$value[data1$month %in% window_months],0.25, na.rm=T) - 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T) 
+                             | value1 > quantile(data1$value[data1$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T)) 
+         & (max(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
+        value1 <- median(data1$value[data1$month %in% window_months], na.rm=TRUE)
+      }
       if((!is.na(value2)) & (value2 == 0) & (min(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
         value2 <- NA
       } 
-      
+      if((!is.na(value2)) & (value2 < quantile(data2$value[data2$month %in% window_months],0.25, na.rm=T) - 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T) 
+                             | value2 > quantile(data2$value[data2$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T)) 
+         & (max(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
+        value2 <- median(data2$value[data2$month %in% window_months], na.rm=TRUE)
+      }
     }
     if(i >= 3){
       window_months <- periods[c(i-2,i-1, min(i+1, length(periods)), min(i+2, length(periods)))]
       if((!is.na(value1)) & (value1 == 0) & (min(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
         value1 <- NA
       }
+      if((!is.na(value1)) & (value1 < quantile(data1$value[data1$month %in% window_months],0.25, na.rm=T) - 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T) 
+                           | value1 > quantile(data1$value[data1$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T)) 
+                            & (max(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
+        value1 <- median(data1$value[data1$month %in% window_months], na.rm=TRUE)
+      }
       if((!is.na(value2)) & (value2 == 0) & (min(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
         value2 <- NA
       }
+      if((!is.na(value2)) & (value2 < quantile(data2$value[data2$month %in% window_months],0.25, na.rm=T) - 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T) 
+                           | value2 > quantile(data2$value[data2$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T)) 
+                            & (max(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
+       value2 <- median(data2$value[data2$month %in% window_months], na.rm=TRUE)
+      }
     }
-    
     ## Compute Expectations
     if(length(values) < 3){
       expected <- mean(c(value1, value2, na.rm=TRUE))
@@ -156,7 +184,6 @@ make_serie <- function(data1, data2){
     
     ## Assign values
     print('Doing some Tests')
-    
     print('Check 1') #> rajouter consistence locale
     if(test_1 & !test_2){
       values <- c(values, value2)
@@ -313,7 +340,7 @@ cols <- c("Declared Patients"="#e31a1c","Treatment Lines"="#1f78b4","Expectation
 
 completed_data_cordaid<-completed_data(full_data, 'total', 'by line')
 
-plot_sample_completed(completed_data_cordaid, sample_size = 16, cols)
+plot_sample_completed(completed_data_cordaid, sample_size = 25, cols)
 
 
 f_plot <- function(completed_data_name, sample_size){
@@ -325,7 +352,7 @@ f_plot <- function(completed_data_name, sample_size){
   return(p)
 }
 
-f_plot(completed_data_cordaid, 16)
+f_plot(completed_data_cordaid, 25)
 
 pdf_plot(completed_data_cordaid, plots.pdf = 'cordaid_compare.pdf', dir0='')
 
@@ -367,5 +394,6 @@ full_data <- rbind(as.data.frame(pnls_total_arv),
  
 #completed_data_cordaid_pnls <- merge(completed_data_cordaid_pnls, M_hierarchy, by.x = 'orgUnit' , by.y = 'id', all.y = FALSE)
 completed_data_cordaid_pnls<-completed_data(full_data, 'cordaid', 'pnls')
-plot_sample_completed(completed_data_cordaid_pnls, sample_size = 16, cols)
-f_plot(completed_data_cordaid_pnls, sample_size = 16)
+plot_sample_completed(completed_data_cordaid_pnls, sample_size = 25, cols)
+f_plot(completed_data_cordaid_pnls, sample_size = 25)
+
