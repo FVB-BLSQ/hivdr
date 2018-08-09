@@ -144,6 +144,14 @@ make_serie <- function(data1, data2){
     test_4 <- (abs(value1-expected)/(max(value1,expected,na.rm = TRUE) + 0.0001)) < .1
     ### Test 5 : value 2 is very different from expectation
     test_5 <- (abs(value2-expected)/(max(value2,expected,na.rm = TRUE) + 0.0001)) < .1
+    ### other situations
+    check_6 <- (abs(value1-value2)/(max(value1,value2, na.rm=TRUE) + 0.0001))
+    check_7 <- (abs(value1-expected)/(max(value1,expected,na.rm = TRUE) + 0.0001))
+    check_8 <- (abs(value2-expected)/(max(value2,expected,na.rm = TRUE) + 0.0001))
+    ### Test 6 : 
+    test_6 <- check_6< check_7 #take value1
+    ### Test 7 : 
+    test_7 <- check_6< check_8 #take value1
     
     
     ## Assign values
@@ -186,7 +194,13 @@ make_serie <- function(data1, data2){
       comment <- c(comment, 'Incoherent data')
     }
     print('Check 7')
-    if(!test_1 & !test_2 & !test_3 & !test_4 & !test_5){
+    if(!test_1 & !test_2 & !test_3 & !test_4 & !test_5 & (test_6 | test_7)){
+      values <- c(values, value1)
+      source <- c(source, unique(data1$source))
+      comment <- c(comment, 'Incoherent data')
+    }
+    print('Check 8')
+    if(!test_1 & !test_2 & !test_3 & !test_4 & !test_5 & !test_6 & !test_7){
       values <- c(values, expected)
       source <- c(source,'estimation')
       comment <- c(comment, 'Incoherent data')
@@ -225,7 +239,9 @@ serying <- function(data, name_1, name_2){
 
 completed_data <- function(full_data, name_1, name_2){
   data <- full_data %>% group_by(.,orgUnit) %>% do(serying(., name_1, name_2))
-  return(data)
+  completed_data <- as.data.frame(data)
+  completed_data_name <- merge(completed_data, M_hierarchy, by.x = 'orgUnit', by.y = 'id', all.y = FALSE)
+  return(completed_data_name)
 }
 
 plot_sample_completed <- function(completed_serie, sample_size, colors){
@@ -292,19 +308,27 @@ exported <- function(completed_data, dir0, file_name){
 ## Plotting parameter
 cols <- c("Declared Patients"="#e31a1c","Treatment Lines"="#1f78b4","Expectation"="#33a02c", "Final Values"="#000000")
 
-completed_data_cordaid <- completed_data(as.data.frame(full_data), 'total', 'by line')
 
-## TODO Integrer ça 
-completed_data_cordaid <- merge(completed_data_cordaid, M_hierarchy, by.x = 'orgUnit' , by.y = 'id', all.y = FALSE)
+#completed_data_cordaid <- merge(completed_data_cordaid, M_hierarchy, by.x = 'orgUnit' , by.y = 'id', all.y = FALSE)
+
+completed_data_cordaid<-completed_data(full_data, 'total', 'by line')
+
 plot_sample_completed(completed_data_cordaid, sample_size = 16, cols)
 
-## TODO Make Function for this
-ggplot(to_plot[to_plot$orgUnit %in% sample, ])+
+
+f_plot <- function(completed_data_name, sample_size){
+  sample <- sample(unique(completed_data_name$orgUnit), size = sample_size) 
+  p<-ggplot(completed_data_name[completed_data_name$orgUnit %in% sample, ])+
   geom_line(aes(x= periods, y=values), alpha=.5)+
   geom_point(aes(x= periods, y=values, color=source, shape=comment))+
   facet_wrap(~name, scales='free_y')
+  return(p)
+}
+
+f_plot(completed_data_cordaid, 16)
 
 pdf_plot(completed_data_cordaid, plots.pdf = 'cordaid_compare.pdf', dir0='')
+
 
 
 ## COMPARE PNLS AND CORDAID
@@ -340,8 +364,8 @@ full_data <- rbind(as.data.frame(pnls_total_arv),
                    as.data.frame(cordaid_total_arv))
 
 
-completed_data_cordaid_pnls <- completed_data(as.data.frame(full_data), 'cordaid', 'pnls')
-
-## TODO Integrer ça 
-completed_data_cordaid_pnls <- merge(completed_data_cordaid_pnls, M_hierarchy, by.x = 'orgUnit' , by.y = 'id', all.y = FALSE)
+ 
+#completed_data_cordaid_pnls <- merge(completed_data_cordaid_pnls, M_hierarchy, by.x = 'orgUnit' , by.y = 'id', all.y = FALSE)
+completed_data_cordaid_pnls<-completed_data(full_data, 'cordaid', 'pnls')
 plot_sample_completed(completed_data_cordaid_pnls, sample_size = 16, cols)
+f_plot(completed_data_cordaid_pnls, sample_size = 16)
