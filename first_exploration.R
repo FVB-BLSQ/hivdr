@@ -83,6 +83,8 @@ make_serie <- function(data1, data2){
   expecteds <- c()
   comment <- c()
   periods <- sort(unique(c(data1$month, data2$month)))
+  outlier_1 <- rep(FALSE, length(periods))
+  outlier_2 <- rep(FALSE, length(periods))
   for(i in seq(1, length(periods))){
     ## Extract useful values
     period_i <- periods[i]
@@ -103,6 +105,8 @@ make_serie <- function(data1, data2){
                            | value1 > quantile(data1$value[data1$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T)) 
          & (max(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
         value1 <- median(data1$value[data1$month %in% window_months], na.rm=TRUE)
+        outlier_1[i] <- TRUE
+        comment[i] <- 'value1 outlier'
       }
       if((!is.na(value2)) & (value2 == 0) & (min(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
         value2 <- NA
@@ -111,6 +115,7 @@ make_serie <- function(data1, data2){
                              | value2 > quantile(data2$value[data2$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T)) 
          & (max(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
         value2 <- median(data2$value[data2$month %in% window_months], na.rm=TRUE)
+        outlier_2[i] <- TRUE
       }
     }
     if(i==2){
@@ -122,6 +127,7 @@ make_serie <- function(data1, data2){
                              | value1 > quantile(data1$value[data1$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T)) 
          & (max(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
         value1 <- median(data1$value[data1$month %in% window_months], na.rm=TRUE)
+        outlier_1[i] <- TRUE
       }
       if((!is.na(value2)) & (value2 == 0) & (min(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
         value2 <- NA
@@ -130,6 +136,7 @@ make_serie <- function(data1, data2){
                              | value2 > quantile(data2$value[data2$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T)) 
          & (max(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
         value2 <- median(data2$value[data2$month %in% window_months], na.rm=TRUE)
+        outlier_2[i] <- TRUE
       }
     }
     if(i >= 3){
@@ -141,6 +148,7 @@ make_serie <- function(data1, data2){
                            | value1 > quantile(data1$value[data1$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T)) 
                             & (max(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
         value1 <- median(data1$value[data1$month %in% window_months], na.rm=TRUE)
+        outlier_1[i] <- TRUE
       }
       if((!is.na(value2)) & (value2 == 0) & (min(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
         value2 <- NA
@@ -149,6 +157,7 @@ make_serie <- function(data1, data2){
                            | value2 > quantile(data2$value[data2$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T)) 
                             & (max(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
        value2 <- median(data2$value[data2$month %in% window_months], na.rm=TRUE)
+       outlier_2[i] <- TRUE
       }
     }
     ## Compute Expectations
@@ -184,12 +193,17 @@ make_serie <- function(data1, data2){
     
     ## Assign values
     print('Doing some Tests')
+    print('CHECK 00')
+    for(i in 1:length(periods)){
+    ifelse((outlier_1[i] == "TRUE"), comment[i] <- 'value1 outlier',comment[i] <- 'value1 ok')
+    }
     print('Check 1') #> rajouter consistence locale
     if(test_1 & !test_2){
       values <- c(values, value2)
       source <- c(source, unique(data2$source))
       comment <- c(comment, 'Unique source')
     }
+    
     print('Check 2')
     if(!test_1 & test_2){
       values <- c(values, value1)
@@ -202,6 +216,7 @@ make_serie <- function(data1, data2){
       source <- c(source, 'estimation')
       comment <- c(comment, 'No data')
     }
+    
     print('Check 4')
     if(!test_1 & !test_2 & test_3){
       values <- c(values, value1)
@@ -238,7 +253,8 @@ make_serie <- function(data1, data2){
   print(source)
   print(expecteds)
   out <- data.frame('periods'=periods,'values'=values, 'expected' = expecteds , 
-                    'source'=source, 'comment'= comment)
+                    'source'=source, 'comment'= comment
+                    )
   out$value_1[out$period == periods]<- data1$value[data1$month == periods]
   out$value_2[out$period == periods]<- data2$value[data2$month == periods]
   return(out)
