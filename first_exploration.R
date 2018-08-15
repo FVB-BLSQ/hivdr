@@ -83,8 +83,8 @@ make_serie <- function(data1, data2){
   expecteds <- c()
   comment <- c()
   periods <- sort(unique(c(data1$month, data2$month)))
-  outlier_1 <- rep(FALSE, length(periods))
-  outlier_2 <- rep(FALSE, length(periods))
+  outlier_1 <- rep(0, length(periods))
+  outlier_2 <- rep(0, length(periods))
   for(i in seq(1, length(periods))){
     ## Extract useful values
     period_i <- periods[i]
@@ -105,8 +105,7 @@ make_serie <- function(data1, data2){
                            | value1 > quantile(data1$value[data1$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T)) 
          & (max(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
         value1 <- median(data1$value[data1$month %in% window_months], na.rm=TRUE)
-        outlier_1[i] <- TRUE
-        comment[i] <- 'value1 outlier'
+        outlier_1[i] <- 1
       }
       if((!is.na(value2)) & (value2 == 0) & (min(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
         value2 <- NA
@@ -115,7 +114,7 @@ make_serie <- function(data1, data2){
                              | value2 > quantile(data2$value[data2$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T)) 
          & (max(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
         value2 <- median(data2$value[data2$month %in% window_months], na.rm=TRUE)
-        outlier_2[i] <- TRUE
+        outlier_2[i] <- 1
       }
     }
     if(i==2){
@@ -127,7 +126,7 @@ make_serie <- function(data1, data2){
                              | value1 > quantile(data1$value[data1$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T)) 
          & (max(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
         value1 <- median(data1$value[data1$month %in% window_months], na.rm=TRUE)
-        outlier_1[i] <- TRUE
+        outlier_1[i] <- 1
       }
       if((!is.na(value2)) & (value2 == 0) & (min(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
         value2 <- NA
@@ -136,7 +135,7 @@ make_serie <- function(data1, data2){
                              | value2 > quantile(data2$value[data2$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T)) 
          & (max(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
         value2 <- median(data2$value[data2$month %in% window_months], na.rm=TRUE)
-        outlier_2[i] <- TRUE
+        outlier_2[i] <- 1
       }
     }
     if(i >= 3){
@@ -148,7 +147,7 @@ make_serie <- function(data1, data2){
                            | value1 > quantile(data1$value[data1$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T)) 
                             & (max(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
         value1 <- median(data1$value[data1$month %in% window_months], na.rm=TRUE)
-        outlier_1[i] <- TRUE
+        outlier_1[i] <- 1
       }
       if((!is.na(value2)) & (value2 == 0) & (min(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
         value2 <- NA
@@ -157,7 +156,7 @@ make_serie <- function(data1, data2){
                            | value2 > quantile(data2$value[data2$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T)) 
                             & (max(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
        value2 <- median(data2$value[data2$month %in% window_months], na.rm=TRUE)
-       outlier_2[i] <- TRUE
+       outlier_2[i] <- 1
       }
     }
     ## Compute Expectations
@@ -193,10 +192,6 @@ make_serie <- function(data1, data2){
     
     ## Assign values
     print('Doing some Tests')
-    print('CHECK 00')
-    for(i in 1:length(periods)){
-    ifelse((outlier_1[i] == "TRUE"), comment[i] <- 'value1 outlier',comment[i] <- 'value1 ok')
-    }
     print('Check 1') #> rajouter consistence locale
     if(test_1 & !test_2){
       values <- c(values, value2)
@@ -252,8 +247,8 @@ make_serie <- function(data1, data2){
   print(values)
   print(source)
   print(expecteds)
-  out <- data.frame('periods'=periods,'values'=values, 'expected' = expecteds , 
-                    'source'=source, 'comment'= comment
+  out <- data.frame('periods'=periods,'values'=values, 'expected' = expecteds, 'source'=source, 
+                    'comment'= comment, 'outlier_1'=outlier_1, 'outlier_2'=outlier_2
                     )
   out$value_1[out$period == periods]<- data1$value[data1$month == periods]
   out$value_2[out$period == periods]<- data2$value[data2$month == periods]
@@ -290,6 +285,12 @@ completed_data <- function(full_data, name_1, name_2){
 plot_sample_completed <- function(completed_serie, sample_size, colors){
   sample <- sample(unique(completed_serie$orgUnit), size = sample_size)
   plot <- ggplot(completed_serie[completed_serie$orgUnit %in% sample, ])+
+    geom_point(data = completed_serie[(completed_serie$outlier_1) == 1 & 
+                                        (completed_serie$orgUnit %in% sample),], 
+               aes(x=periods, y = value_1, colour="outlier_1"), size = 3)+
+    geom_point(data = completed_serie[(completed_serie$outlier_2) == 1 & 
+                                        (completed_serie$orgUnit %in% sample),], 
+               aes(x=periods, y = value_2, colour="outlier_2"), size = 3)+
     geom_point(aes(x=periods, y=value_1, colour= 'Declared Patients') , alpha=.5) +
     geom_line(aes(x=periods, y=value_1, colour= 'Declared Patients'), alpha=.5)+    
     geom_point(aes(x=periods, y=value_2, colour= 'Treatment Lines'), alpha=.5) +
@@ -298,22 +299,26 @@ plot_sample_completed <- function(completed_serie, sample_size, colors){
     geom_line(aes(x=periods, y=expected, colour= 'Expectation'), alpha=.5)+
     geom_point(aes(x=periods, y=values, colour="Final Values", shape=source), size = 2) +
     geom_line(aes(x=periods, y = values, colour="Final Values")) +
-    scale_colour_manual(name="Source", values=cols) +
+    scale_colour_manual(name="Source", values=cols2) +
     guides(alpha = FALSE)+
     facet_wrap(~name, scales = 'free_y') +
     theme_bw() +
     theme(axis.title.x = element_text(size = 15, vjust=-.2)) +
     theme(axis.title.y = element_text(size = 15, vjust=0.3)) +
-    ylab("N Patients") + xlab("Year 2017")  +
+    ylab("N Patients") + xlab("Year 2017")+
     guides(shape=guide_legend(title="Comment"))
   return(plot)
 } 
 
 pdf_plot <- function(complete_data, plots.pdf, dir0){
   pdf(paste(dir0,plots.pdf), onefile = TRUE)
+  size1 <- complete_data$outlier_1*3
+  size2 <- complete_data$outlier_2*3
   for( i in unique(complete_data$orgUnit)){
     dat_plot <- complete_data[complete_data$orgUnit == i, ]
     p <- ggplot(dat_plot)+
+      geom_point(data = dat_plot[dat_plot$outlier_1,], aes(x=periods, y = value_1, colour='outlier_1', size = size1))+
+      geom_point(data = dat_plot[dat_plot$outlier_2,], aes(x=periods, y = value_2, colour='outlier_2', size = size2))+
       geom_point(aes(x=periods, y=value_1, colour= 'Declared Patients') , alpha=.5) +
       geom_line(aes(x=periods, y=value_1, colour= 'Declared Patients'), alpha=.5)+    
       geom_point(aes(x=periods, y=value_2, colour= 'Treatment Lines'), alpha=.5) +
@@ -322,7 +327,7 @@ pdf_plot <- function(complete_data, plots.pdf, dir0){
       geom_line(aes(x=periods, y=expected, colour= 'Expectation'), alpha=.5)+
       geom_point(aes(x=periods, y=values, colour="Final Values")) +
       geom_line(aes(x=periods, y = values, colour="Final Values")) +
-      scale_colour_manual(name="Source", values=cols) +
+      scale_colour_manual(name="Source", values=cols2) +
       guides(alpha = FALSE)+
       ylim(0,max(dat_plot[,c('value_1','value_2','expected','values')])) +
       theme_bw() +
@@ -333,6 +338,9 @@ pdf_plot <- function(complete_data, plots.pdf, dir0){
   }
   dev.off()
 }
+
+pdf_plot(completed_data_cordaid, plots.pdf = 'cordaid_compare.pdf', dir0='')
+
 
 exported <- function(completed_data, dir0, file_name){
   export_1 <- completed_data[c('orgUnit','periods','values')]
@@ -351,10 +359,14 @@ exported <- function(completed_data, dir0, file_name){
 ## Plotting parameter
 cols <- c("Declared Patients"="#e31a1c","Treatment Lines"="#1f78b4","Expectation"="#33a02c", "Final Values"="#000000")
 
+cols2 <- c("Declared Patients"="#e31a1c","Treatment Lines"="#1f78b4","Expectation"="#33a02c", "Final Values"="#000000", "outlier_1"="#984ea3", "outlier_2"="#ff7f00" )
+
 
 #completed_data_cordaid <- merge(completed_data_cordaid, M_hierarchy, by.x = 'orgUnit' , by.y = 'id', all.y = FALSE)
 
 completed_data_cordaid<-completed_data(full_data, 'total', 'by line')
+table(completed_data_cordaid$outlier_1)
+table(completed_data_cordaid$outlier_2)
 
 plot_sample_completed(completed_data_cordaid, sample_size = 25, cols)
 
