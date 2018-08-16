@@ -101,18 +101,22 @@ make_serie <- function(data1, data2){
       if((!is.na(value1)) & (value1 == 0) & (min(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
         value1 <- NA
       }
-      if((!is.na(value1)) & (value1 < quantile(data1$value[data1$month %in% window_months],0.25, na.rm=T) - 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T) 
-                           | value1 > quantile(data1$value[data1$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T)) 
-         & (max(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
+      if((!is.na(value1)) & (value1 < quantile(data1$value[data1$month %in% window_months],0.25, na.rm=T) 
+                             - 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T) 
+                           | value1 > quantile(data1$value[data1$month %in% window_months],0.75, na.rm=T) 
+                           + 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T))
+                          & (max(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
         value1 <- median(data1$value[data1$month %in% window_months], na.rm=TRUE)
         outlier_1[i] <- 1
       }
       if((!is.na(value2)) & (value2 == 0) & (min(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
         value2 <- NA
       }
-      if((!is.na(value2)) & (value2 < quantile(data2$value[data2$month %in% window_months],0.25, na.rm=T) - 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T) 
-                             | value2 > quantile(data2$value[data2$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T)) 
-         & (max(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
+      if((!is.na(value2)) & (value2 < quantile(data2$value[data2$month %in% window_months],0.25, na.rm=T) 
+                             - 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T) 
+                           | value2 > quantile(data2$value[data2$month %in% window_months],0.75, na.rm=T) 
+                             + 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T))
+                          & (max(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
         value2 <- median(data2$value[data2$month %in% window_months], na.rm=TRUE)
         outlier_2[i] <- 1
       }
@@ -122,18 +126,22 @@ make_serie <- function(data1, data2){
       if((!is.na(value1)) & (value1 == 0) & (min(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
         value1 <- NA
       } 
-      if((!is.na(value1)) & (value1 < quantile(data1$value[data1$month %in% window_months],0.25, na.rm=T) - 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T) 
-                             | value1 > quantile(data1$value[data1$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T)) 
-         & (max(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
+      if((!is.na(value1)) & (value1 < quantile(data1$value[data1$month %in% window_months],0.25, na.rm=T) 
+                             - 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T) 
+                             | value1 > quantile(data1$value[data1$month %in% window_months],0.75, na.rm=T) 
+                             + 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T))
+                          & (max(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
         value1 <- median(data1$value[data1$month %in% window_months], na.rm=TRUE)
         outlier_1[i] <- 1
       }
       if((!is.na(value2)) & (value2 == 0) & (min(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
         value2 <- NA
       } 
-      if((!is.na(value2)) & (value2 < quantile(data2$value[data2$month %in% window_months],0.25, na.rm=T) - 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T) 
-                             | value2 > quantile(data2$value[data2$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T)) 
-         & (max(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
+      if((!is.na(value2)) & (value2 < quantile(data2$value[data2$month %in% window_months],0.25, na.rm=T) 
+                             - 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T) 
+                             | value2 > quantile(data2$value[data2$month %in% window_months],0.75, na.rm=T) 
+                             + 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T))
+                          & (max(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
         value2 <- median(data2$value[data2$month %in% window_months], na.rm=TRUE)
         outlier_2[i] <- 1
       }
@@ -143,18 +151,22 @@ make_serie <- function(data1, data2){
       if((!is.na(value1)) & (value1 == 0) & (min(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
         value1 <- NA
       }
-      if((!is.na(value1)) & (value1 < quantile(data1$value[data1$month %in% window_months],0.25, na.rm=T) - 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T) 
-                           | value1 > quantile(data1$value[data1$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T)) 
-                            & (max(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
+      if((!is.na(value1)) & (value1 < quantile(data1$value[data1$month %in% window_months],0.25, na.rm=T) 
+                             - 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T) 
+                           | value1 > quantile(data1$value[data1$month %in% window_months],0.75, na.rm=T) 
+                           + 1.5 * IQR(data1$value[data1$month %in% window_months], na.rm=T))
+                          & (max(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
         value1 <- median(data1$value[data1$month %in% window_months], na.rm=TRUE)
         outlier_1[i] <- 1
       }
       if((!is.na(value2)) & (value2 == 0) & (min(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
         value2 <- NA
       }
-      if((!is.na(value2)) & (value2 < quantile(data2$value[data2$month %in% window_months],0.25, na.rm=T) - 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T) 
-                           | value2 > quantile(data2$value[data2$month %in% window_months],0.75, na.rm=T) + 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T)) 
-                            & (max(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
+      if((!is.na(value2)) & (value2 < quantile(data2$value[data2$month %in% window_months],0.25, na.rm=T) 
+                             - 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T) 
+                             | value2 > quantile(data2$value[data2$month %in% window_months],0.75, na.rm=T) 
+                           + 1.5 * IQR(data2$value[data2$month %in% window_months], na.rm=T))
+                          & (max(data2$value[data2$month %in% window_months], na.rm=TRUE) > 0)){
        value2 <- median(data2$value[data2$month %in% window_months], na.rm=TRUE)
        outlier_2[i] <- 1
       }
@@ -311,14 +323,16 @@ plot_sample_completed <- function(completed_serie, sample_size, colors){
 } 
 
 pdf_plot <- function(complete_data, plots.pdf, dir0){
+  complete_data$size1 <- complete_data$outlier_1*3
+  complete_data$size2 <- complete_data$outlier_2*3
   pdf(paste(dir0,plots.pdf), onefile = TRUE)
-  size1 <- complete_data$outlier_1*3
-  size2 <- complete_data$outlier_2*3
+  
   for( i in unique(complete_data$orgUnit)){
+    #print(i)
     dat_plot <- complete_data[complete_data$orgUnit == i, ]
     p <- ggplot(dat_plot)+
-      geom_point(data = dat_plot[dat_plot$outlier_1,], aes(x=periods, y = value_1, colour='outlier_1', size = size1))+
-      geom_point(data = dat_plot[dat_plot$outlier_2,], aes(x=periods, y = value_2, colour='outlier_2', size = size2))+
+      geom_point(aes(x=periods, y = value_1, colour='outlier_1', size = size1))+
+      geom_point(aes(x=periods, y = value_2, colour='outlier_2', size = size2))+
       geom_point(aes(x=periods, y=value_1, colour= 'Declared Patients') , alpha=.5) +
       geom_line(aes(x=periods, y=value_1, colour= 'Declared Patients'), alpha=.5)+    
       geom_point(aes(x=periods, y=value_2, colour= 'Treatment Lines'), alpha=.5) +
@@ -339,8 +353,15 @@ pdf_plot <- function(complete_data, plots.pdf, dir0){
   dev.off()
 }
 
-pdf_plot(completed_data_cordaid, plots.pdf = 'cordaid_compare.pdf', dir0='')
 
+f_plot <- function(completed_data_name, sample_size){ 
+  sample <- sample(unique(completed_data_name$orgUnit), size = sample_size)  
+  p<-ggplot(completed_data_name[completed_data_name$orgUnit %in% sample, ])+ 
+    geom_line(aes(x= periods, y=values), alpha=.5)+ 
+    geom_point(aes(x= periods, y=values, color=source, shape=comment))+ 
+    facet_wrap(~name, scales='free_y') 
+  return(p) 
+} 
 
 exported <- function(completed_data, dir0, file_name){
   export_1 <- completed_data[c('orgUnit','periods','values')]
@@ -369,16 +390,6 @@ table(completed_data_cordaid$outlier_1)
 table(completed_data_cordaid$outlier_2)
 
 plot_sample_completed(completed_data_cordaid, sample_size = 25, cols)
-
-
-f_plot <- function(completed_data_name, sample_size){
-  sample <- sample(unique(completed_data_name$orgUnit), size = sample_size) 
-  p<-ggplot(completed_data_name[completed_data_name$orgUnit %in% sample, ])+
-  geom_line(aes(x= periods, y=values), alpha=.5)+
-  geom_point(aes(x= periods, y=values, color=source, shape=comment))+
-  facet_wrap(~name, scales='free_y')
-  return(p)
-}
 
 f_plot(completed_data_cordaid, 25)
 
@@ -424,4 +435,54 @@ full_data <- rbind(as.data.frame(pnls_total_arv),
 completed_data_cordaid_pnls<-completed_data(full_data, 'cordaid', 'pnls')
 plot_sample_completed(completed_data_cordaid_pnls, sample_size = 25, cols)
 f_plot(completed_data_cordaid_pnls, sample_size = 25)
+
+
+
+###compare cordaid pnls by line : TDF+3TC+NVP
+
+###cordaid=TDF+3TC+EFV & PNLS-DRUG-TDF+3TC+NVP sex
+summary(cordaid$value[cordaid$dataElement == 'iOW0K3mjoxe'])
+summary(pnls$value[pnls$dataElement == 'fdc1v0PSUZe'])
+
+
+cordaid_id <- 'iOW0K3mjoxe'
+pnls_id <- 'fdc1v0PSUZe'
+
+#pnls_id <-'hKZX17adANF'
+#cordaid_id <-'UghM3Ucwecy'
+  
+cat_comb_ancien <- M_category_combos$CatComboOpt_id[M_category_combos$CatOpt_id.1 %in% c('vZ6Os4BJvum','ggod3chlUCG')]
+
+cordaid_line <- cordaid_pnls[(cordaid_pnls$dataElement == cordaid_id),]
+pnls_line <- pnls_cordaid[(pnls_cordaid$dataElement == pnls_id),]
+
+cordaid_line <- cordaid_line %>% group_by(period, orgUnit) %>% summarize('value' = sum(value))
+pnls_line <- pnls_line %>% group_by(period, orgUnit) %>% summarize('value' = sum(value))
+
+treatment_lines<-c('pnlsTDFFTCEFV', 'cordaidTDFFTCEFV')
+compare <- merge(pnls_line,cordaid_line,by=c('period', 'orgUnit'), suffixes = treatment_lines)
+
+ggplot(compare) +
+  geom_point(aes(valuepnlsTDFFTCEFV, valuecordaidTDFFTCEFV))
+
+cordaid_line <- subset(cordaid_line, select=c(period, value, orgUnit))
+pnls_line$period <- as.character(pnls_line$period)
+pnls_line$orgUnit <- as.character(pnls_line$orgUnit)
+cordaid_line$orgUnit <- as.character(cordaid_line$orgUnit)
+pnls_line <- subset(pnls_line, select=c(period, value, orgUnit))
+
+colnames(cordaid_line) <-colnames(pnls_line) <- c('month', 'value', 'orgUnit')
+cordaid_line$source <- 'cordaid'
+pnls_line$source <- 'pnls'
+
+full_data <- rbind(as.data.frame(pnls_line),
+                   as.data.frame(cordaid_line))
+
+
+completed_data_cordaid_pnls<-completed_data(full_data, 'cordaid', 'pnls')
+plot_sample_completed(completed_data_cordaid_pnls, sample_size = 25, cols)
+f_plot(completed_data_cordaid_pnls, sample_size = 25)
+pdf_plot(completed_data_cordaid_pnls, plots.pdf = 'cordaid_pnls_line.pdf', dir0='')
+
+
 
