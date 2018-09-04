@@ -3,6 +3,7 @@ library(zoo)
 library(dplyr)
 library(data.table)
 
+### working directory for Data and Metadata
 data_dir <- 'C:/Users/Saliou/Documents/consultant/BlueSquare/sources/'
 metadata_dir <- 'C:/Users/Saliou/Documents/consultant/BlueSquare/metadata/'
 
@@ -76,7 +77,7 @@ ggplot(data = compare) +
   guides(col=FALSE) + facet_wrap(~parent.parent.parent.name, scales = 'free_y')
 
 
-## Function to build prefered serie from diverse data sources
+## Function to build preferred serie from diverse data sources
 make_serie <- function(data1, data2){
   values <- c()
   source <- c()
@@ -93,9 +94,28 @@ make_serie <- function(data1, data2){
     if (length(value1) == 0){value1 <- NA}
     value2 <- data2$value[data2$month == period_i]
     if (length(value2) == 0){value2 <- NA}
-    if(length(values) >= 3){expected <- mean(values[(length(values)-2):length(values)], na.rm=TRUE)}
-    if(length(values) < 3){expected <- mean(c(value1, value2, na.rm=TRUE))}
-    ##taking into account zeros
+    
+    ###calculating "expected" from different situations
+    if(length(values) < 3 & (!is.na(value1)) & (!is.na(value2))){
+      expected <- mean(c(value1, value2, na.rm=TRUE))
+    }
+    
+    if(length(values) < 3 & (!is.na(value1)) & (is.na(value2))){
+      expected <- value1
+    }
+    
+    if(length(values) < 3 & (is.na(value1)) & (!is.na(value2))){
+      expected <- value2
+    }
+    
+    if(length(values) >= 3 & (!is.na(value1)) & (!is.na(value2))){
+      expected <- mean(values[(length(values)-2):length(values)], na.rm=TRUE)
+    }
+    
+    expecteds <- c(expecteds, expected)
+    
+    ##taking into account zeros and outliers
+     #first period 
     if(i==1){
       window_months <- periods[c(min(i+1, length(periods)), min(i+2, length(periods)))]
       if((!is.na(value1)) & (value1 == 0) & (min(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
@@ -121,6 +141,7 @@ make_serie <- function(data1, data2){
         outlier_2[i] <- 1
       }
     }
+    #second period 
     if(i==2){
       window_months <- periods[c(1,min(i+1, length(periods)), min(i+2, length(periods)))]
       if((!is.na(value1)) & (value1 == 0) & (min(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
@@ -146,6 +167,7 @@ make_serie <- function(data1, data2){
         outlier_2[i] <- 1
       }
     }
+    #from the third period
     if(i >= 3){
       window_months <- periods[c(i-2,i-1, min(i+1, length(periods)), min(i+2, length(periods)))]
       if((!is.na(value1)) & (value1 == 0) & (min(data1$value[data1$month %in% window_months], na.rm=TRUE) > 0)){
@@ -171,46 +193,39 @@ make_serie <- function(data1, data2){
        outlier_2[i] <- 1
       }
     }
-    ## Compute Expectations
-    if(length(values) < 3){
-      expected <- mean(c(value1, value2, na.rm=TRUE))
-    }
-    if(length(values) >= 3){
-      expected <- mean(values[(length(values)-2):length(values)], na.rm=TRUE)
-    }
-    expecteds <- c(expecteds, expected)
-    
+   
     ## Make tests
+    
     ### Test 1: value1 is missinng
     test_1 <- is.na(value1)
     ### Test 2: value2 is missing
     test_2 <- is.na(value2)
-    ### Test 3: value 1 and 2 are very different
+    ### Test 3: values 1 and 2 are equal
+    test_3 <- value1==value2
+    ### Test 4: values 1 and 2 are a little different
     to_check <- (abs(value1-value2)/(max(value1,value2, na.rm=TRUE) + 0.0001))
-    test_3 <- is.finite(to_check) & (to_check < .1)
-    ### Test 4: value 1 is very different from expectation
-    test_4 <- (abs(value1-expected)/(max(value1,expected,na.rm = TRUE) + 0.0001)) < .1
-    ### Test 5 : value 2 is very different from expectation
-    test_5 <- (abs(value2-expected)/(max(value2,expected,na.rm = TRUE) + 0.0001)) < .1
+    test_4 <- is.finite(to_check) & (to_check < .15)
+    ### Test 5: value 1 is very different from expectation
+    test_5 <- (abs(value1-expected)/(max(value1,expected,na.rm = TRUE) + 0.0001)) > .15
+    ### Test 6 : value 2 is very different from expectation
+    test_6 <- (abs(value2-expected)/(max(value2,expected,na.rm = TRUE) + 0.0001)) > .15
     ### other situations
-    check_6 <- (abs(value1-value2)/(max(value1,value2, na.rm=TRUE) + 0.0001))
-    check_7 <- (abs(value1-expected)/(max(value1,expected,na.rm = TRUE) + 0.0001))
-    check_8 <- (abs(value2-expected)/(max(value2,expected,na.rm = TRUE) + 0.0001))
-    ### Test 6 : 
-    test_6 <- check_6< check_7 #take value1
-    ### Test 7 : 
-    test_7 <- check_6< check_8 #take value1
+    to_check_1 <- (abs(value1-expected)/(max(value1,expected,na.rm = TRUE) + 0.0001))
+    to_check_2 <- (abs(value2-expected)/(max(value2,expected,na.rm = TRUE) + 0.0001))
+    ### Test 7 and 8: 
+    test_7 <- to_check< to_check_1 #take value1
+    test_8 <- to_check< to_check_2 #take value1
     
     
     ## Assign values
     print('Doing some Tests')
+    
     print('Check 1') #> rajouter consistence locale
     if(test_1 & !test_2){
       values <- c(values, value2)
       source <- c(source, unique(data2$source))
       comment <- c(comment, 'Unique source')
     }
-    
     print('Check 2')
     if(!test_1 & test_2){
       values <- c(values, value1)
@@ -223,33 +238,38 @@ make_serie <- function(data1, data2){
       source <- c(source, 'estimation')
       comment <- c(comment, 'No data')
     }
-    
     print('Check 4')
     if(!test_1 & !test_2 & test_3){
       values <- c(values, value1)
       source <- c(source, unique(data1$source))
-      comment <- c(comment, 'Coherent data')
+      comment <- c(comment, 'identical values')
     }
     print('Check 5')
     if(!test_1 & !test_2 & !test_3 & test_4){
       values <- c(values, value1)
       source <- c(source, unique(data1$source))
-      comment <- c(comment, 'Incoherent data')
+      comment <- c(comment, 'Coherent data')
     }
     print('Check 6')
     if(!test_1 & !test_2 & !test_3 & !test_4 & test_5){
-      values <- c(values, value2)
-      source <- c(source, unique(data2$source))
+      values <- c(values, expected)
+      source <- c(source,'estimation')
       comment <- c(comment, 'Incoherent data')
     }
     print('Check 7')
-    if(!test_1 & !test_2 & !test_3 & !test_4 & !test_5 & (test_6 | test_7)){
+    if(!test_1 & !test_2 & !test_3 & !test_4 & !test_5 & test_6){
+      values <- c(values, expected)
+      source <- c(source,'estimation')
+      comment <- c(comment, 'Incoherent data')
+    }
+    print('Check 8')
+    if(!test_1 & !test_2 & !test_3 & !test_4 & !test_5 & !test_6 & (test_7 | test_8)){
       values <- c(values, value1)
       source <- c(source, unique(data1$source))
       comment <- c(comment, 'Incoherent data')
     }
-    print('Check 8')
-    if(!test_1 & !test_2 & !test_3 & !test_4 & !test_5 & !test_6 & !test_7){
+    print('Check 9')
+    if(!test_1 & !test_2 & !test_3 & !test_4 & !test_5 & !test_6 & !test_7 & !test_8){
       values <- c(values, expected)
       source <- c(source,'estimation')
       comment <- c(comment, 'Incoherent data')
@@ -260,8 +280,7 @@ make_serie <- function(data1, data2){
   print(source)
   print(expecteds)
   out <- data.frame('periods'=periods,'values'=values, 'expected' = expecteds, 'source'=source, 
-                    'comment'= comment, 'outlier_1'=outlier_1, 'outlier_2'=outlier_2
-                    )
+                    'comment'= comment, 'outlier_1'=outlier_1, 'outlier_2'=outlier_2)
   out$value_1[out$period == periods]<- data1$value[data1$month == periods]
   out$value_2[out$period == periods]<- data2$value[data2$month == periods]
   return(out)
@@ -275,9 +294,6 @@ serie_data_1$source <- 'total'
 serie_data_2$source <-'by line'
 
 full_data <- rbind(serie_data_1, serie_data_2)
-
-
-
 
 serying <- function(data, name_1, name_2){
   data1 <- data[data$source == name_1,]
@@ -294,56 +310,66 @@ completed_data <- function(full_data, name_1, name_2){
   return(completed_data_name)
 }
 
-plot_sample_completed <- function(completed_serie, sample_size, colors, title_series){
+#-----------functions to represent and compare series--------------------#
+##represent graphs on a sample of OrgUnits
+plot_sample__completed <- function(completed_serie, sample_size, title_series){
   sample <- sample(unique(completed_serie$orgUnit), size = sample_size)
   plot <- ggplot(completed_serie[completed_serie$orgUnit %in% sample, ])+
     geom_point(data = completed_serie[(completed_serie$outlier_1) == 1 & 
                                         (completed_serie$orgUnit %in% sample),], 
-               aes(x=periods, y = value_1, colour="outlier_1"), size = 3)+
+               aes(x=periods, y = value_1, fill="outlier_1"), show.legend=FALSE, size = 3)+
     geom_point(data = completed_serie[(completed_serie$outlier_2) == 1 & 
                                         (completed_serie$orgUnit %in% sample),], 
-               aes(x=periods, y = value_2, colour="outlier_2"), size = 3)+
-    geom_point(aes(x=periods, y=value_1, colour= 'Declared Patients') , alpha=.5) +
-    geom_line(aes(x=periods, y=value_1, colour= 'Declared Patients'), alpha=.5)+    
-    geom_point(aes(x=periods, y=value_2, colour= 'Treatment Lines'), alpha=.5) +
-    geom_line(aes(x=periods, y=value_2, colour= 'Treatment Lines'), alpha=.5)+
-    geom_point(aes(x=periods, y=expected, colour= 'Expectation'), alpha=.5) +
-    geom_line(aes(x=periods, y=expected, colour= 'Expectation'), alpha=.5)+
-    geom_point(aes(x=periods, y=values, colour="Final Values", shape=source), size = 2) +
-    geom_line(aes(x=periods, y = values, colour="Final Values")) +
-    scale_colour_manual(name="Source", values=cols2) +
-    guides(alpha = FALSE)+
+               aes(x=periods, y = value_2, fill="outlier_2"), show.legend=FALSE, size = 3)+
+    geom_point(aes(x=periods, y=expected, fill='Expectation'), show.legend=FALSE, alpha=.5) +
+    geom_line(aes(x=periods, y=expected, colour='Expectation', group=orgUnit), alpha=.5)+
+    geom_point(aes(x=periods, y=values, shape=comment, fill='Preferred serie'), size = 2) +
+    geom_line(aes(x=periods, y = values, colour='Preferred serie', group=orgUnit))+
+    geom_point(aes(x=periods, y=value_1, fill= serie1), show.legend=FALSE, alpha=.5) +
+    geom_line(aes(x=periods, y=value_1, colour= serie1, group=orgUnit), alpha=.5)+    
+    geom_point(aes(x=periods, y=value_2, fill= serie2), show.legend=FALSE, alpha=.5) +
+    geom_line(aes(x=periods, y=value_2, colour= serie2, group=orgUnit), alpha=.5)+
+    scale_colour_manual(name="Sources", values = cols1)+
+    scale_shape_manual(name="Series", values = 0:4)+ 
+    guides(alpha = FALSE,
+           shape=guide_legend(title="Comment"), 
+           fill=FALSE,
+           colour = guide_legend(title="Source", 
+                                 override.aes = list(shape='')))+
     facet_wrap(~name, scales = 'free_y') +
     theme_bw() +
     theme(axis.title.x = element_text(size = 15, vjust=-.2)) +
     theme(axis.title.y = element_text(size = 15, vjust=0.3)) +
     ylab("N Patients") + xlab("Year 2017")+
-    labs(title = title_series)+
-    guides(shape=guide_legend(title="Comment"))
+    labs(title = title_series)
   return(plot)
 } 
 
-pdf_plot <- function(complete_data, plots.pdf, dir0, title_series){
-  complete_data$size1 <- complete_data$outlier_1*3
-  complete_data$size2 <- complete_data$outlier_2*3
+#export in a pdf file, by orgunit
+pdf_plot<- function(complete_data, plots.pdf, dir0, title_series){
+  complete_data$size1 <- complete_data$outlier_1*2
+  complete_data$size2 <- complete_data$outlier_2*2
   pdf(paste(dir0,plots.pdf), onefile = TRUE)
-  
   for( i in unique(complete_data$orgUnit)){
-    #print(i)
     dat_plot <- complete_data[complete_data$orgUnit == i, ]
     p <- ggplot(dat_plot)+
-      geom_point(aes(x=periods, y = value_1, colour='outlier_1', size = size1))+
-      geom_point(aes(x=periods, y = value_2, colour='outlier_2', size = size2))+
-      geom_point(aes(x=periods, y=value_1, colour= 'Declared Patients') , alpha=.5) +
-      geom_line(aes(x=periods, y=value_1, colour= 'Declared Patients'), alpha=.5)+    
-      geom_point(aes(x=periods, y=value_2, colour= 'Treatment Lines'), alpha=.5) +
-      geom_line(aes(x=periods, y=value_2, colour= 'Treatment Lines'), alpha=.5)+
-      geom_point(aes(x=periods, y=expected, colour= 'Expectation'), alpha=.5) +
-      geom_line(aes(x=periods, y=expected, colour= 'Expectation'), alpha=.5)+
-      geom_point(aes(x=periods, y=values, colour="Final Values")) +
-      geom_line(aes(x=periods, y = values, colour="Final Values")) +
-      scale_colour_manual(name="Source", values=cols2) +
-      guides(alpha = FALSE)+
+      geom_point(aes(x=periods, y = value_1, fill='outlier_1', size = size1), show.legend=FALSE)+
+      geom_point(aes(x=periods, y = value_2, fill='outlier_2', size = size2), show.legend=FALSE)+
+      geom_point(aes(x=periods, y=value_1, fill= serie1) , show.legend=FALSE, alpha=.5) +
+      geom_line(aes(x=periods, y=value_1, colour= serie1, group=orgUnit), alpha=.5)+    
+      geom_point(aes(x=periods, y=value_2, fill= serie2), show.legend=FALSE, alpha=.5) +
+      geom_line(aes(x=periods, y=value_2, colour= serie2, group=orgUnit), alpha=.5)+
+      geom_point(aes(x=periods, y=expected, fill= 'Expectation'), show.legend=FALSE, alpha=.5) +
+      geom_line(aes(x=periods, y=expected, colour= 'Expectation', group=orgUnit), alpha=.5)+
+      geom_point(aes(x=periods, y=values, shape=comment, fill='Preferred serie')) +
+      geom_line(aes(x=periods, y = values, colour='Preferred serie', group=orgUnit)) +
+      scale_colour_manual(name="Source", values=cols1)+
+      scale_shape_manual(name="Series", values = 0:4)+ 
+      guides(alpha = FALSE,
+             shape=guide_legend(title="Comment"), 
+             fill=FALSE,
+             colour = guide_legend(title="Source", 
+                                   override.aes = list(shape='')))+
       ylim(0,max(dat_plot[,c('value_1','value_2','expected','values')])) +
       theme_bw() +
       theme(axis.title.x = element_text(size = 15, vjust=-.2)) +
@@ -355,7 +381,7 @@ pdf_plot <- function(complete_data, plots.pdf, dir0, title_series){
   dev.off()
 }
 
-
+#to plot only preferred series
 f_plot <- function(completed_data_name, sample_size, title_series){ 
   sample <- sample(unique(completed_data_name$orgUnit), size = sample_size)  
   p<-ggplot(completed_data_name[completed_data_name$orgUnit %in% sample, ])+ 
@@ -366,60 +392,90 @@ f_plot <- function(completed_data_name, sample_size, title_series){
   return(p) 
 } 
 
+#export data in csv format, by month
 exported <- function(completed_data, dir0, file_name){
   export_1 <- completed_data[c('orgUnit','periods','values')]
   export_2 <-  completed_data[c('orgUnit','periods','source')]
   export_3 <-  completed_data[c('orgUnit','periods','comment')]
+  export_1$values <- round(export_1$values,0)
   colnames(export_1) <- colnames(export_2) <- colnames(export_3) <- c('OU_id','Period','data_value')
   export_1$data_value <- as.character(export_1$data_value)
   export_1$DE_id <- 'ACCEPTED_VALUE'
   export_2$DE_id <- 'ACCEPTED_SOURCE'
   export_3$DE_id <- 'DATA_VALUE_COMMENT'
   export <- rbind(as.data.frame(export_1), as.data.frame(export_2), as.data.frame(export_3))
-  write.csv(export, paste(dir0, file_name))
+  export$catoptcombo <- 'HllvX50cXC0'
+  export$attroptcombo <- NA
+  export <- export[c('DE_id','Period','OU_id','catoptcombo','attroptcombo','data_value')]
+  write.csv(export, paste(dir0, file_name), row.names = FALSE)
+  return(export)
+}
+
+#export data in csv format, by quarter
+exportedbis <- function(completed_data, dir0, file_name){
+  export_1 <- completed_data[c('orgUnit','periods','values')]
+  export_2 <-  completed_data[c('orgUnit','periods','source')]
+  export_3 <-  completed_data[c('orgUnit','periods','comment')]
+  export_1$values <- round(export_1$values,0)
+  colnames(export_1) <- colnames(export_2) <- colnames(export_3) <- c('OU_id','Period','data_value')
+  export_1$data_value <- as.character(export_1$data_value)
+  export_1$DE_id <- 'ACCEPTED_VALUE'
+  export_2$DE_id <- 'ACCEPTED_SOURCE'
+  export_3$DE_id <- 'DATA_VALUE_COMMENT'
+  export <- rbind(as.data.frame(export_1), as.data.frame(export_2), as.data.frame(export_3))
+  export$catoptcombo <- 'HllvX50cXC0'
+  export$attroptcombo <- NA
+  export <- export[(export$Period==201703 | export$Period==201706 | export$Period==201709 | export$Period==201712),]
+  export <- export[c('DE_id','Period','OU_id','catoptcombo','attroptcombo','data_value')]
+  write.csv(export, paste(dir0, file_name), row.names = FALSE)
   return(export)
 }
 
 ## Plotting parameter
-cols <- c("Declared Patients"="#e31a1c","Treatment Lines"="#1f78b4","Expectation"="#33a02c", "Final Values"="#000000")
+serie1<-'Declared Patients'
+serie2<-'Treatment Lines'
 
-cols2 <- c("Declared Patients"="#e31a1c","Treatment Lines"="#1f78b4","Expectation"="#33a02c", "Final Values"="#000000", "outlier_1"="#984ea3", "outlier_2"="#ff7f00" )
-
-#completed_data_cordaid <- merge(completed_data_cordaid, M_hierarchy, by.x = 'orgUnit' , by.y = 'id', all.y = FALSE)
-
-completed_data_cordaid<-completed_data(full_data, 'total', 'by line')
-table(completed_data_cordaid$outlier_1)
-table(completed_data_cordaid$outlier_2)
+cols1 <- c("Declared Patients"="#e31a1c","Treatment Lines"="#1f78b4","Expectation"="#33a02c", "Preferred serie"="#000000")
 
 title_series<-'total numbers of patients currently on ART'
-plot_sample_completed(completed_data_cordaid, sample_size = 25, cols, title_series)
 
-f_plot(completed_data_cordaid, 25, title_series)
 
+##call functions
+completed_data_cordaid<-completed_data(full_data, 'total', 'by line')
+plot_sample_completed(completed_data_cordaid, sample_size = 25, title_series)
 pdf_plot(completed_data_cordaid, plots.pdf = 'cordaid_compare.pdf', dir0='', title_series)
+f_plot(completed_data_cordaid, 25, title_series)
+exported (completed_data_cordaid, dir0='', file_name='export_cordaid.csv')
+exportedbis (completed_data_cordaid, dir0='', file_name='export_cordaid_bis.csv')
 
 
-
-## COMPARE PNLS AND CORDAID
+###########################################################################
+###########################################################################
+##------ COMPARE PNLS AND CORDAID : total numbers currently on ART-------##
+###########################################################################
+###########################################################################
 
 # series with total numbers currently on ART
 cordaid_id <- 'Yj8caUQs178'
 pnls_id <- 'Dd2G5zI0o0a'
 
+## Select correponding CatCombos
 cat_comb_ancien <- M_category_combos$CatComboOpt_id[M_category_combos$CatOpt_id.1 %in% c('vZ6Os4BJvum','ggod3chlUCG')]
 
+## Select correponding DataElement
 cordaid_total_arv <- cordaid_pnls[(cordaid_pnls$dataElement == cordaid_id) & (cordaid_pnls$categoryOptionCombo %in% cat_comb_ancien),]
 pnls_total_arv <- pnls_cordaid[(pnls_cordaid$dataElement == pnls_id)& (pnls_cordaid$categoryOptionCombo %in% cat_comb_ancien),]
 
+## aggregate values of each DE by period and OrgUnit
 cordaid_total_arv <- cordaid_total_arv %>% group_by(period, orgUnit) %>% summarize('value' = sum(value))
 pnls_total_arv <- pnls_total_arv %>% group_by(period, orgUnit) %>% summarize('value' = sum(value))
 
+#compare and plot two series with same DE
 compare <- merge(pnls_total_arv,cordaid_total_arv,by=c('period', 'orgUnit'), suffixes = c('pnls', 'cordaid'))
-
-
 ggplot(compare) +
   geom_point(aes(valuepnls, valuecordaid))
 
+## Standardizing data sources and making unique data frame
 cordaid_total_arv <- subset(cordaid_total_arv, select=c(period, value, orgUnit))
 pnls_total_arv$period <- as.character(pnls_total_arv$period)
 pnls_total_arv$orgUnit <- as.character(pnls_total_arv$orgUnit)
@@ -434,50 +490,76 @@ full_data <- rbind(as.data.frame(pnls_total_arv),
                    as.data.frame(cordaid_total_arv))
 
 
+## Plotting parameter
+serie1<-'serie cordaid'
+serie2<-'serie pnls'
+cols1 <- c('serie cordaid'="#e31a1c",'serie pnls'="#1f78b4","Expectation"="#33a02c", "Preferred serie"="#000000")
+
+title_series<-'total numbers of patients currently on ART'
  
-#completed_data_cordaid_pnls <- merge(completed_data_cordaid_pnls, M_hierarchy, by.x = 'orgUnit' , by.y = 'id', all.y = FALSE)
-completed_data_cordaid_pnls<-completed_data(full_data, 'cordaid', 'pnls')
-plot_sample_completed(completed_data_cordaid_pnls, sample_size = 25, cols)
-f_plot(completed_data_cordaid_pnls, sample_size = 25)
+##call functions
+completed_data_cordaid_pnls_total<-completed_data(full_data, 'cordaid', 'pnls')
+plot_sample_completed(completed_data_cordaid_pnls_total, sample_size = 25, title_series)
+f_plot(completed_data_cordaid_pnls, sample_size = 25, title_series)
+pdf_plot(completed_data_cordaid_pnls_total, plots.pdf = 'cordaid_pnls_totalART.pdf', dir0='',title_series)
 
 
+###########################################################################
+###########################################################################
+##------------- COMPARE PNLS AND CORDAID BY TREATMENT LINES--------------##
+###########################################################################
+###########################################################################
 
-###compare cordaid pnls by line : TDF+3TC+NVP
-
+#Find DE of interest
 ###cordaid=TDF+3TC+EFV & PNLS-DRUG-TDF+FTC+EFV
-summary(cordaid$value[cordaid$dataElement == 'iOW0K3mjoxe'])
-summary(pnls$value[pnls$dataElement == 'hKZX17adANF'])
-
 
 cordaid_id <- 'iOW0K3mjoxe'
 pnls_id <- 'hKZX17adANF'
 
-cordaid_id <- 'lqA1LfMt9C6'
-pnls_id <- 'KJ7qFDiAftt'
-  
+
+#TDF+3TC+NVP
+#cordaid_id <- 'lqA1LfMt9C6'
+#pnls_id <- 'KJ7qFDiAftt'
+
+#AZT+3TC+NVP
+#cordaid_id <- 'wrRjiD0fz8j'
+#pnls_id <-'aozs6mB8T8n'
+
+## Select correponding CatCombos  
 cat_comb_ancien <- M_category_combos$CatComboOpt_id[M_category_combos$CatOpt_id.1 %in% c('vZ6Os4BJvum','ggod3chlUCG')]
 
+## Select correponding DataElement
 cordaid_line <- cordaid_pnls[(cordaid_pnls$dataElement == cordaid_id),]
 pnls_line <- pnls_cordaid[(pnls_cordaid$dataElement == pnls_id),]
 
+## aggregate values of each DE by period and OrgUnit
 cordaid_line <- cordaid_line %>% group_by(period, orgUnit) %>% summarize('value' = sum(value))
 pnls_line <- pnls_line %>% group_by(period, orgUnit) %>% summarize('value' = sum(value))
 
+## Plotting parameter
+serie1<-'serie cordaid'
+serie2<-'serie pnls'
+cols1 <- c('serie cordaid'="#e31a1c",'serie pnls'="#1f78b4","Expectation"="#33a02c", "Preferred serie"="#000000")
+
+cols1 <- c('serie cordaid'="#e31a1c",'serie pnls'="#1f78b4","Expectation"="#33a02c", "Preferred serie"="#000000")
+
 
 title_series<-'Number of patients under TDF+3TC+EFV'
-compare <- merge(pnls_line,cordaid_line,by=c('period', 'orgUnit'), suffixes = c('pnls', 'cordaid'))
 
+#compare and plot two series with same DE
+compare <- merge(pnls_line,cordaid_line,by=c('period', 'orgUnit'), suffixes = c('pnls', 'cordaid'))
 ggplot(compare) +
   geom_point(aes(valuepnls, valuecordaid))+
   labs(title = title_series)
 
-cordaid_line <- subset(cordaid_line, select=c(period, value, orgUnit))
+## Standardizing data sources and making unique data frame
+cordaid_line <- subset(cordaid_line, select=c(period, orgUnit, value))
 pnls_line$period <- as.character(pnls_line$period)
 pnls_line$orgUnit <- as.character(pnls_line$orgUnit)
 cordaid_line$orgUnit <- as.character(cordaid_line$orgUnit)
-pnls_line <- subset(pnls_line, select=c(period, value, orgUnit))
+pnls_line <- subset(pnls_line, select=c(period, orgUnit, value))
 
-colnames(cordaid_line) <-colnames(pnls_line) <- c('month', 'value', 'orgUnit')
+colnames(cordaid_line) <-colnames(pnls_line) <- c('month', 'orgUnit', 'value')
 cordaid_line$source <- 'cordaid'
 pnls_line$source <- 'pnls'
 
@@ -485,8 +567,11 @@ full_data <- rbind(as.data.frame(pnls_line),
                    as.data.frame(cordaid_line))
 
 
+##call functions
 completed_data_cordaid_pnls<-completed_data(full_data, 'cordaid', 'pnls')
-plot_sample_completed(completed_data_cordaid_pnls, sample_size = 25, cols, title_series)
+new_completed_data_cordaid_pnls<-completed_data_cordaid_pnls[completed_data_cordaid_pnls$values> 50,]
+plot_sample__completed(completed_data_cordaid_pnls, sample_size = 25, title_series)
 f_plot(completed_data_cordaid_pnls, sample_size = 25, title_series)
-pdf_plot(completed_data_cordaid_pnls, plots.pdf = 'cordaid_pnls_line.pdf', dir0='',title_series)
-
+exported (completed_data_cordaid_pnls, dir0='', file_name='export_TDF3TCEFV.csv')
+exportedbis (completed_data_cordaid_pnls, dir0='', file_name='export_TDF3TCEFV_bis.csv')
+pdf_plot(new_completed_data_cordaid_pnls, plots.pdf = 'cordaid_pnls_TDF3TCEFV.pdf', dir0='',title_series)
