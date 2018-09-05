@@ -96,10 +96,11 @@ make_serie <- function(data1, data2){
     if (length(value2) == 0){value2 <- NA}
     
     ###calculating "expected" from different situations
+     #-----with two periods and two sources 
     if(length(values) < 3 & (!is.na(value1)) & (!is.na(value2))){
       expected <- mean(c(value1, value2, na.rm=TRUE))
     }
-    
+    #-----with two periods and two sources
     if(length(values) < 3 & (!is.na(value1)) & (is.na(value2))){
       expected <- value1
     }
@@ -107,7 +108,7 @@ make_serie <- function(data1, data2){
     if(length(values) < 3 & (is.na(value1)) & (!is.na(value2))){
       expected <- value2
     }
-    
+    #-----at least three periods and two sources : making rolling average
     if(length(values) >= 3 & (!is.na(value1)) & (!is.na(value2))){
       expected <- mean(values[(length(values)-2):length(values)], na.rm=TRUE)
     }
