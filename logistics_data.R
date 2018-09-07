@@ -2,33 +2,19 @@ library(ggplot2)
 library(zoo)
 library(dplyr)
 library(data.table)
+library(dhisextractr)
 
-data_dir <- '/Users/grlurton/data/dhis/rdc/hivdr/' 
-metadata_dir <- '/Users/grlurton/data/dhis/rdc/hivdr/metadata/' 
+load_env()
+load_metadata(metadata_dir)
 
 ### Load Data
 cordaid <- readRDS(paste0(data_dir, 'Cordaid_TRAITEMENTS.rds'))
 pnls <- readRDS(paste0(data_dir, 'PNLS.rds'))
-sigl <- readRDS(paste0(data_dir, 'SIGL2.rds'))
+### Load functions
 
+source("patient_data.R")
 
-### Load Metadata
-load_metadata <- function(metadata_dir, suffix = ''){
-  env <- globalenv()
-  assign(paste0('M_category_combos', suffix) , readRDS(paste0(metadata_dir, 'CC_metadata.rds')), env)
-  assign(paste0('M_data_element_group', suffix) , readRDS(paste0(metadata_dir, 'DEG_metadata.rds')), env)
-  assign(paste0('M_data_sets', suffix) , readRDS(paste0(metadata_dir, 'DS_metadata.rds')), env)
-  assign(paste0('M_org_units', suffix) , readRDS(paste0(metadata_dir, 'OU_metadata_DSinfo.rds')), env)
-  assign(paste0('M_hierarchy', suffix) , readRDS(paste0(metadata_dir, 'OU_metadata_flat.rds')), env)
-  assign(paste0('M_org_units', suffix) , readRDS(paste0(metadata_dir, 'OU_metadata.rds')), env)
-}
-
-load_metadata(metadata_dir)
-
-de_snis <- read.csv('/Users/grlurton/data/dhis/rdc/snis/data_elements_list.csv')
-
-M_data_sets[M_data_sets$DE_id %in% pnls$dataElement,][grep('TDF', M_data_sets[M_data_sets$DE_id %in% pnls$dataElement,])]
-de_snis[de_snis$id %in% sigl$dataElement,]
+M_data_sets[M_data_sets$DE_id %in% pnls$dataElement,][grep('TDF', M_data_sets[M_data_sets$DE_id %in% pnls$dataElement,])]de_snis[de_snis$id %in% sigl$dataElement,]
 
 M_data_sets[grep('PNLS-DRUG', M_data_sets$DE_name),]
 
@@ -186,9 +172,30 @@ ggplot(out[out$orgUnit == 'SIqwiCBwiL5',])+
   #geom_point(data=sortie_to_plot, aes(period, `CMM`), col='blue', shape=17, size = 2)+
   geom_line(data=sortie_to_plot, aes(period, `declared sortie`), col='blue') +
   geom_line(data=out[out$orgUnit == 'SIqwiCBwiL5',], aes(period, sortie), col='blue', alpha = .2)
-  
-export_logistics <- function(completed_data, dir0, file_name){
+
+format_period <- function(completed_data){
   completed_data$period <- paste0(substr(completed_data$period,1,4),substr(completed_data$period,6,7))
+  return(completed_data)
+}
+  
+out <- format_period(out)
+
+make_quarterly <- function(completed_data){
+  out <- subset(completed_data, period %in% c('201703', '201706', '201709', '201712'))
+  out$stockout_perc[out$period == '201703'] <- sum(out$stock[out$period %in% c('201701','201702','201703')] == 0, na.rm=TRUE) / 3
+  out$stockout_perc[out$period == '201706'] <- sum(out$stock[out$period %in% c('201704','201705','201706')] == 0, na.rm=TRUE) / 3
+  out$stockout_perc[out$period == '201709'] <- sum(out$stock[out$period %in% c('201707','201708','201709')] == 0, na.rm=TRUE) / 3
+  out$stockout_perc[out$period == '201712'] <- sum(out$stock[out$period %in% c('201710','201711','201712')] == 0, na.rm=TRUE) / 3
+  out$period[out$period == '201703'] <- '2017Q1'
+  out$period[out$period == '201706'] <- '2017Q2'
+  out$period[out$period == '201709'] <- '2017Q3'
+  out$period[out$period == '201712'] <- '2017Q4'
+  return(out)
+}
+
+out_q <- out %>% group_by(orgUnit) %>% do(make_quarterly(.))
+
+export_logistics <- function(completed_data, dir0, file_name){
   stock <- data.frame(completed_data[,c('orgUnit','period','stock')], c('STOCK'))
   stock_comment <- data.frame(completed_data[,c('orgUnit','period','stock_comment')], c('STOCK_COMMENT'))
   cmm <- data.frame(completed_data[,c('orgUnit','period','cmm_trace')], c('CMM'))
@@ -196,6 +203,11 @@ export_logistics <- function(completed_data, dir0, file_name){
   sorties_comment <- data.frame(completed_data[,c('orgUnit','period','sortie_comment')], c('SORTIES_COMMENT'))
   colnames(stock) <- colnames(stock_comment) <- colnames(cmm) <- colnames(sorties)<- colnames(sorties_comment) <- c('OU_id','period','data_value','DE_id')
   out <- rbind(stock, stock_comment, cmm, sorties, sorties_comment)
+  if(('stockout_perc' %in% colnames(completed_data)) == TRUE){
+    stockout_perc <- data.frame(completed_data[,c('orgUnit','period','stockout_perc')], c('STOCKOUT_PERC'))
+    colnames(stockout_perc) <- c('OU_id','period','data_value','DE_id')
+    out <- rbind(out, stockout_perc)
+  }
   out['catoptcombo'] <- 'HllvX50cXC0'
   out['attroptcombo'] <- NA
   out <- out[,c("DE_id","period","OU_id","catoptcombo","attroptcombo","data_value")]
@@ -203,4 +215,7 @@ export_logistics <- function(completed_data, dir0, file_name){
   return(out)
 }
 
-export_logistics(out,  getwd(), 'logistics_tdf_ftc_efv.csv')
+
+out <- export_logistics(out_q,  getwd(), 'logistics_tdf_ftc_efv.csv')
+
+
