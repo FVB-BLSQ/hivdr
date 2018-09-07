@@ -180,17 +180,19 @@ format_period <- function(completed_data){
   
 out <- format_period(out)
 
-make_quarterly <- function(completed_data){
-  out <- subset(completed_data, period %in% c('201703', '201706', '201709', '201712'))
-  out$stockout_perc[out$period == '201703'] <- sum(out$stock[out$period %in% c('201701','201702','201703')] == 0, na.rm=TRUE) / 3
-  out$stockout_perc[out$period == '201706'] <- sum(out$stock[out$period %in% c('201704','201705','201706')] == 0, na.rm=TRUE) / 3
-  out$stockout_perc[out$period == '201709'] <- sum(out$stock[out$period %in% c('201707','201708','201709')] == 0, na.rm=TRUE) / 3
-  out$stockout_perc[out$period == '201712'] <- sum(out$stock[out$period %in% c('201710','201711','201712')] == 0, na.rm=TRUE) / 3
-  out$period[out$period == '201703'] <- '2017Q1'
-  out$period[out$period == '201706'] <- '2017Q2'
-  out$period[out$period == '201709'] <- '2017Q3'
-  out$period[out$period == '201712'] <- '2017Q4'
-  return(out)
+make_quarterly <- function(out){
+  outq <- subset(out, period %in% c('201703', '201706', '201709', '201712'))
+  outq$stockout_perc <- NA
+  outq$stockout_perc[outq$period == '201703'] <- sum(out$stock[out$period %in% c('201701','201702','201703')] == 0, na.rm=TRUE) / 3#sum(!is.na(out$stock[out$period %in% c('201701','201702','201703')] ))
+  outq$stockout_perc[outq$period == '201706'] <- sum(out$stock[out$period %in% c('201704','201705','201706')] == 0, na.rm=TRUE) / 3#sum(!is.na(out$stock[out$period %in% c('201704','201705','201706')] ))
+  outq$stockout_perc[outq$period == '201709'] <- sum(out$stock[out$period %in% c('201707','201708','201709')] == 0, na.rm=TRUE) / 3#sum(!is.na(out$stock[out$period %in% c('201707','201708','201709')] ))
+  outq$stockout_perc[outq$period == '201712'] <- sum(out$stock[out$period %in% c('201710','201711','201712')] == 0, na.rm=TRUE) / 3#sum(!is.na(out$stock[out$period %in% c('201710','201711','201712')] ))
+  print('to Period')
+  outq$period[outq$period == '201703'] <- '2017Q1'
+  outq$period[outq$period == '201706'] <- '2017Q2'
+  outq$period[outq$period == '201709'] <- '2017Q3'
+  outq$period[outq$period == '201712'] <- '2017Q4'
+  return(outq)
 }
 
 out_q <- out %>% group_by(orgUnit) %>% do(make_quarterly(.))
