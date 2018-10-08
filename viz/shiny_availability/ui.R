@@ -3,41 +3,46 @@
   shinyUI(
 
     mainPanel(
-      hr(),
-      dateRangeInput('dateRange',
-                       label = NULL,
-                       start = '2012-02-09',
-                       end = Sys.Date() + 2
-      ),
-      hr(),
+      br(),
       tabsetPanel(
-        
         tabPanel(
-          "Timeliness",
+          "Data Element",
           fluidPage(
-            hr(),
+            br(),
             fluidRow(
+              
               column(6,
-                     selectInput("dataset", "Dataset", choices = c(levels(data$DS_name)), c(levels(data$DS_name))[1])
+                     selectInput("dataelement", "Data Element", 
+                                 choices = unique(de_availability_map$name_data_element), 
+                                 selected = unique(de_availability_map$name_data_element)[1]),
+                     selectInput("period", "Period", 
+                                 choices = unique(de_availability_map$period), 
+                                 selected = unique(de_availability_map$period)[-1])
               ),
               column(6,
-                     selectInput("region", "Region", choices = c(levels(data$level_2_name)), selected =c(levels(data$level_2_name))[1] )
+                     selectInput("region", "Region", 
+                                 choices = unique(de_availability_timeline$namelevel2),
+                                 selected = unique(de_availability_timeline$namelevel2)[1]),
+                     br(),
+                     textOutput("print1"),
+                     textOutput("print2"),
+                      tags$head(tags$style("#print2{color: black;
+                                 font-size: 30px;
+                                          font-style: bold;
+                                          }"))
               )
             ),
-            plotOutput("plot1")
-          )
-        ),
-        
-        tabPanel(
-          "Map",
-          fluidPage(
-            hr(),
+            br(),
             fluidRow(
+                
               column(6,
-                     selectInput("dataelement", "DataElement", choices = c(levels(data_map$dataElement)), c(levels(data_map$dataElement))[1])
+                      plotOutput("plot1", height = "600px")
+              ),
+              column(6,
+                      plotOutput("plot2", height = "300px"),
+                      DT::dataTableOutput('datatable1', height = "400px")
               )
-            ),
-            plotOutput("plot2")
+            )
           )
         )
         
