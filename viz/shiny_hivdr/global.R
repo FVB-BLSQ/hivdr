@@ -6,6 +6,7 @@ library('dplyr')
 library('scales')
 library('reshape2')
 library('data.table')
+library('scales')
 
 print('Loading Data')
   
@@ -18,6 +19,7 @@ print('Loading Data')
   df1$value <- as.numeric(df1$value)
   df1$level_2_id <- as.character(df1$level_2_id)
   df1$X <- NULL
+  df1 <- df1 %>% filter(grepl("2017", periods))
   
   df1_combine <- df1 %>% filter(source == "combine")
   df1_cordaid <- df1 %>% filter(source == "cordaid")
@@ -40,8 +42,19 @@ print('Loading Data')
   
   # df2 : number of patients per line or treatment (combined)
   df2 <- read.csv("../../data/hivdr_lines.csv", dec = ".")
-  df2$value <- as.numeric(df2$value)
   df2$X <- NULL
+  df2$value <- as.numeric(df2$value)
+  df2$value[is.na(df2$value)] <- 0
+  df2$level_2_id <- as.character(df2$level_2_id)
+  df2 <- df2 %>% filter(grepl("2017", periods))
+  
+  df2_region <- df2 %>% group_by(level_2_id, level_2_name, periods, line) %>% summarize(value = sum(value))
+  df2_region_all <- df2_region %>% group_by(level_2_id, level_2_name, periods) %>% summarize(all = sum(value))
+  df2_region <- merge(df2_region, df2_region_all, by = c("level_2_id", "level_2_name", "periods"), all.x = T)
+  df2_region <- df2_region %>% arrange(periods)
+
+  df2_all <- df2 %>% group_by(level_2_id, level_2_name, level_3_id, level_3_name, periods) %>% summarize(all = sum(value))
+  df2 <- merge(df2, df2_all, by = c("level_2_id", "level_2_name", "level_3_id", "level_3_name", "periods"), all.x = T)
   
   # df3 : number of HIV facilities (combined)
   df3 <- read.csv("../../data/hivdr_facilities.csv", dec = ".")
@@ -54,5 +67,26 @@ print('Loading Data')
   df4$value <- as.numeric(df4$value)
   df4$X <- NULL
   
+
+  test <- df2_region %>% filter(level_2_id=="TwSa8zUu09Q")
+  unique(test$line)
+  
+
+blank_theme <- theme_minimal() +
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    panel.border = element_blank(),
+    panel.grid=element_blank(),
+    axis.ticks = element_blank(),
+    plot.title=element_text(size=14, face="bold")
+  )
+
+group.colors <- c("ABC + 3TC + EFV" = "#B9F2F0", "ABC + 3TC + LPV/r" = "#FFB482", "ABC + 3TC + NVP" = "#8DE5A1", "AZT + 3TC + LPV/r" = "#FF9F9B", "AZT+3TC+ EFV" = "#D0BBFF",
+                  "AZT+3TC+NVP" = "#DEBB9B", "TDF + 3TC + LPV/r" = "#FAB0E4", "TDF + FTC + NVP" = "#CFCFCF", "TDF+ FTC + EFV" = "#FFFEA3", "TDF+3TC+EFV" = "#A1C9F4", "TDF+3TC+NVP" = "#3333F0", "Autres (à préciser)" = "#BB5B58")
+
+
+
 print('Launching App')
+
 
