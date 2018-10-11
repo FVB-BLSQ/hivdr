@@ -226,8 +226,68 @@
                       n_patients <- m$all[1]
                       n_patients
                     })
-    
 
+
+      
+  ## FACILITIES ######################################################################################################
+
+  ## DATA
+  
+  df4_region_filt1 <- reactive({
+    m <- df4_region %>%
+      filter(
+        periods == input$period3)
+    m <- left_join(coordinates_region, m, by = c('id' = 'level_2_id'))
+    m
+  })                  
+
+                      ## DATA
+
+                      output$plot6 <- renderPlot({
+
+                        df <- df3_region
+                        df <- left_join(coordinates_region, df, by = c('id' = 'level_2_id'))
+
+                        ggplot(df)+
+                          geom_polygon(aes(x  = long, y = lat ,
+                                           group=id,
+                                           fill = value))+
+                          theme_minimal() +
+                          coord_map() +
+                          scale_fill_gradient(name = "Number of facilities",
+                                              low = '#eeeeee', high = '#4D71A3',
+                                              space = "Lab",
+                                              na.value = "grey50", guide = "colourbar")+
+                          ggtitle("FACILITIES")+
+                          theme(plot.title = element_text(size=20, hjust = 0.55),
+                                legend.position = "bottom",
+                                legend.key.width = unit(2, "cm"),
+                                legend.text=element_text(size=13),
+                                legend.title=element_text(size=15))
+
+                    })
+                      
+                    output$plot7 <- renderPlot({
+                      
+                      df <- df4_region_filt1()
+                      
+                      ggplot(df)+
+                        geom_polygon(aes(x  = long, y = lat ,
+                                         group=id,
+                                         fill = percentage))+
+                        theme_minimal() +
+                        coord_map() +
+                        scale_fill_gradient(name = "Number of facilities",
+                                            low = '#228b22', high = '#ef0404',
+                                            space = "Lab",
+                                            na.value = "grey90", guide = "colourbar")+
+                        ggtitle("% OF FACILITIES WITH STOCKOUTS")+
+                        theme(plot.title = element_text(size=20, hjust = 0.55),
+                              legend.position = "bottom",
+                              legend.key.width = unit(2, "cm"),
+                              legend.text=element_text(size=13),
+                              legend.title=element_text(size=15))
+                      
+                    })
+  
   }
-  
-  

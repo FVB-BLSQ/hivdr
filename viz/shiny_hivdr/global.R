@@ -58,18 +58,28 @@ print('Loading Data')
   
   # df3 : number of HIV facilities (combined)
   df3 <- read.csv("../../data/hivdr_facilities.csv", dec = ".")
+  df3 <-as.data.frame(df3)
   df3$value <- as.numeric(df3$value)
+  df3$level_2_id <- as.character(df3$level_2_id)
   df3$X <- NULL
+  
+  df3_region <- df3 %>% group_by(level_2_id, level_2_name) %>% summarize(value = sum(value))
   
   # df4 : number of HIV facilities (combined)
   df4 <- read.csv("../../data/hivdr_facilities_stockout.csv", dec = ".")
-  colnames(df4)[colnames(df4)=="fac_rupture"] <- "value"
+  df4 <-as.data.frame(df4)
+  df4 <- df4 %>% rename("level_2_id" = uidlevel2, "level_2_name" = namelevel2, "periods" = period, "value" = fac_rupture)
   df4$value <- as.numeric(df4$value)
+  df4$level_2_id <- as.character(df4$level_2_id)
   df4$X <- NULL
+  df4 <- df4 %>% filter(grepl("2017", periods))
   
-
-  test <- df2_region %>% filter(level_2_id=="TwSa8zUu09Q")
-  unique(test$line)
+  
+  df4_region <- df4 %>% group_by(level_2_id, level_2_name, periods) %>% summarize(value = sum(value))
+  df4_region <- merge(df4_region, df3_region, by = c("level_2_id", "level_2_name"), all.x = T) %>% 
+                    rename(value = value.x, all = value.y)
+  df4_region$percentage <- round(df4_region$value / df4_region$all,2)
+  df4_region <- df4_region %>% arrange(periods)
   
 
 blank_theme <- theme_minimal() +

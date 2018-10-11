@@ -80,13 +80,27 @@
                                           font-style: bold;
                                           }")),
                      plotOutput("plot5", height = "600px"))
-            )#,
-            # br(),
-            # fluidRow(
-            #   DT::dataTableOutput('datatable1', height = "400px")
-            # )
+            )
           )
-        )
+        ),
+        
+        
+        ## PANEL 3
+        tabPanel(
+          "Facilities",
+          fluidPage(
+            br(),
+            fluidRow(
+              column(6,
+                     plotOutput("plot6", height = "600px")),
+              column(6,
+                     selectInput("period3", "Period",
+                                 choices = unique(df4_region$period),
+                                 selected = unique(df4_region$period)[-1]),
+                     plotOutput("plot7", height = "600px"))
+              )
+            )
+          )
         
         
       ), width = 12))
