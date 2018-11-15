@@ -3,8 +3,16 @@
 .RData
 .Ruserdata
 
+
 \.DS_Store
 
 data/
+
+*.csv
+
+\.env
+
+\.DS_Store
+
 
 notebooks/\.ipynb_checkpoints/
