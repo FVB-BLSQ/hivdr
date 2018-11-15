@@ -18,7 +18,7 @@ df1 <-as.data.frame(df1)
 df1$value <- as.numeric(df1$value)
 df1$level_2_id <- as.character(df1$level_2_id)
 df1$X <- NULL
-df1 <- df1 %>% filter(grepl("2017", periods))
+df1 <- df1 %>% filter(grepl("2017|2018", periods))
 
 df1_combine <- df1 %>% filter(source == "combine")
 df1_cordaid <- df1 %>% filter(source == "cordaid")
